@@ -19,7 +19,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/bwit-service-ops",
+            "outputPath": "dist/app-bwit",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": [],
