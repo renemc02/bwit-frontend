@@ -3,6 +3,7 @@ import { provideRouter } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { routes } from './app.routes';
+import { apiBaseInterceptor } from './core/interceptors/api-base.interceptor';
 import { authInterceptor }    from './core/auth/auth.interceptor';
 import { errorInterceptor }   from './core/interceptors/error.interceptor';
 import { loadingInterceptor } from './core/interceptors/loading.interceptor';
@@ -13,7 +14,7 @@ export const appConfig: ApplicationConfig = {
     provideZonelessChangeDetection(),
     provideRouter(routes),           // sin withViewTransitions — causa InvalidStateError en Angular 20
     provideHttpClient(
-      withInterceptors([authInterceptor, empresaInterceptor, errorInterceptor, loadingInterceptor])
+      withInterceptors([apiBaseInterceptor, authInterceptor, empresaInterceptor, errorInterceptor, loadingInterceptor])
     ),
     provideAnimations(),
   ]
