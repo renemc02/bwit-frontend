@@ -1,0 +1,204 @@
+<bwit-topbar title="Clientes">
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" placeholder="Buscar cliente…" (input)="buscar($event)" />
+  </div>
+  <div class="toolbar-spacer"></div>
+  <button class="btn primary" (click)="nuevo()">+ Nuevo cliente</button>
+</bwit-topbar>
+
+<div class="page-body">
+  <div class="card">
+    @if (loading()) { <ui-loading /> }
+    @else if (!items().length) { <ui-empty title="Sin clientes" /> }
+    @else {
+      <table class="table">
+        <thead><tr><th>Código</th><th>Razón Social</th><th>Nombre corto</th><th>RUC</th><th>Sector</th><th style="text-align:center">Proyectos</th><th style="text-align:right">Monto total</th></tr></thead>
+        <tbody>
+          @for (item of items(); track item.Id) {
+            <tr (click)="editar(item)" style="cursor:pointer">
+              <td class="id">{{ item.Codigo }}</td>
+              <td class="strong">{{ item.RazonSocial }}</td>
+              <td class="muted">{{ item.NombreCorto ?? '—' }}</td>
+              <td class="id">{{ item.Ruc }}</td>
+              <td class="muted">{{ item.Sector ?? '—' }}</td>
+              <td style="text-align:center">{{ item.TotalProyectos }}</td>
+              <td class="num mono">S/ {{ item.MontoTotal | number:'1.0-0' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>
+
+<!-- ═══ Modal crear/editar cliente ═══ -->
+@if (modal()) {
+  <div class="modal-backdrop" (click)="cerrar()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editId() ? 'Editar cliente' : 'Nuevo cliente' }}</h2>
+        <button class="icon-btn" (click)="cerrar()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <div class="form-grid-2">
+          <div class="form-row">
+            <label>Código <span class="req">*</span></label>
+            <input class="input" type="text" [(ngModel)]="form.Codigo" name="codigo" placeholder="CLI-001" />
+          </div>
+          <div class="form-row">
+            <label>RUC <span class="req">*</span></label>
+            <input class="input" type="text" [(ngModel)]="form.Ruc" name="ruc" placeholder="20100000000" />
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-top:14px">
+          <label>Razón social <span class="req">*</span></label>
+          <input class="input" type="text" [(ngModel)]="form.RazonSocial" name="razon" placeholder="Empresa S.A.C." />
+        </div>
+
+        <div class="form-grid-2" style="margin-top:14px">
+          <div class="form-row">
+            <label>Nombre corto</label>
+            <input class="input" type="text" [(ngModel)]="form.NombreCorto" name="nombrecorto" />
+          </div>
+          <div class="form-row">
+            <label>Sector</label>
+            <input class="input" type="text" [(ngModel)]="form.Sector" name="sector" placeholder="Banca, Retail, etc." />
+          </div>
+        </div>
+
+        <div class="form-grid-2" style="margin-top:14px">
+          <div class="form-row">
+            <label>Teléfono</label>
+            <input class="input" type="text" [(ngModel)]="form.Telefono" name="tel" />
+          </div>
+          <div class="form-row">
+            <label>Email general</label>
+            <input class="input" type="email" [(ngModel)]="form.EmailGeneral" name="email" />
+          </div>
+        </div>
+
+        <div class="form-grid-2" style="margin-top:14px">
+          <div class="form-row">
+            <label>Dirección</label>
+            <input class="input" type="text" [(ngModel)]="form.Direccion" name="dir" />
+          </div>
+          <div class="form-row">
+            <label>Condición de pago</label>
+            <select class="select" [(ngModel)]="form.TipoPago" name="tipopago">
+              <option value="Contado">Contado</option>
+              <option value="Crédito 15">Crédito 15 días</option>
+              <option value="Crédito 30">Crédito 30 días</option>
+              <option value="Crédito 60">Crédito 60 días</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- ── Contacto principal ── -->
+        <div class="section-divider">
+          <span>Contacto principal</span>
+        </div>
+
+        <div class="form-grid-2">
+          <div class="form-row">
+            <label>Nombre del contacto</label>
+            <input class="input" type="text" [(ngModel)]="form.ContactoNombre" name="cnombre" placeholder="Ej. Eduardo Rivas" />
+          </div>
+          <div class="form-row">
+            <label>Cargo</label>
+            <input class="input" type="text" [(ngModel)]="form.ContactoCargo" name="ccargo" placeholder="Gerente de TI" />
+          </div>
+        </div>
+
+        <div class="form-grid-2" style="margin-top:14px">
+          <div class="form-row">
+            <label>Email del contacto</label>
+            <input class="input" type="email" [(ngModel)]="form.ContactoEmail" name="cemail" />
+          </div>
+          <div class="form-row">
+            <label>Teléfono del contacto</label>
+            <input class="input" type="text" [(ngModel)]="form.ContactoTelefono" name="ctel" />
+          </div>
+        </div>
+
+        @if (editId()) {
+          <div class="section-divider"><span>Contactos del cliente</span></div>
+
+          <div class="contactos-toolbar">
+            <span class="muted" style="font-size:12.5px">Gestiona los contactos de este cliente</span>
+            <button class="btn sm secondary" (click)="nuevoContacto()">+ Agregar contacto</button>
+          </div>
+
+          @if (cargandoContactos()) {
+            <p class="muted" style="font-size:13px;text-align:center;padding:12px">Cargando contactos…</p>
+          } @else if (!contactos().length) {
+            <p class="muted" style="font-size:13px;text-align:center;padding:12px">Sin contactos. Agrega el primero.</p>
+          } @else {
+            <div class="contactos-list">
+              @for (ct of contactos(); track ct.Id) {
+                <div class="contacto-item">
+                  <div class="ct-avatar">{{ inicial(ct.Nombre) }}</div>
+                  <div class="ct-info">
+                    <div class="ct-nombre">{{ ct.Nombre }}@if (ct.EsPrincipal) { <span class="badge-principal">principal</span> }</div>
+                    <div class="ct-meta">{{ ct.Cargo || '—' }}@if (ct.Email) { · {{ ct.Email }} }@if (ct.Celular) { · {{ ct.Celular }} }</div>
+                  </div>
+                  <button class="icon-btn" title="Editar" (click)="editarContacto(ct)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z"/></svg>
+                  </button>
+                  <button class="icon-btn danger" title="Eliminar" (click)="eliminarContacto(ct)">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6"/></svg>
+                  </button>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Form inline de contacto (agregar/editar) -->
+          @if (contactoForm()) {
+            <div class="contacto-form">
+              <div class="form-grid-2">
+                <div class="form-row">
+                  <label>Nombre <span class="req">*</span></label>
+                  <input class="input" [(ngModel)]="cf.Nombre" name="cf_nombre" placeholder="Ej. Eduardo Rivas" />
+                </div>
+                <div class="form-row">
+                  <label>Cargo</label>
+                  <input class="input" [(ngModel)]="cf.Cargo" name="cf_cargo" placeholder="Gerente de TI" />
+                </div>
+              </div>
+              <div class="form-grid-2" style="margin-top:10px">
+                <div class="form-row">
+                  <label>Email</label>
+                  <input class="input" type="email" [(ngModel)]="cf.Email" name="cf_email" />
+                </div>
+                <div class="form-row">
+                  <label>Celular</label>
+                  <input class="input" [(ngModel)]="cf.Celular" name="cf_cel" />
+                </div>
+              </div>
+              <label class="check-row" style="margin-top:10px">
+                <input type="checkbox" [(ngModel)]="cf.EsPrincipal" name="cf_principal" /> Marcar como contacto principal
+              </label>
+              <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">
+                <button class="btn sm secondary" (click)="cancelarContacto()">Cancelar</button>
+                <button class="btn sm primary" (click)="guardarContacto()">{{ cfId() ? 'Guardar' : 'Agregar' }}</button>
+              </div>
+            </div>
+          }
+        }
+
+        @if (formError()) { <div class="error-msg" style="margin-top:12px">{{ formError() }}</div> }
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="cerrar()">Cancelar</button>
+        <button class="btn primary" (click)="guardar()" [disabled]="guardando()">
+          {{ guardando() ? 'Guardando…' : (editId() ? 'Guardar cambios' : 'Crear cliente') }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

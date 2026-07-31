@@ -1,0 +1,70 @@
+<div class="switcher-wrap">
+
+  <!-- Trigger -->
+  <button class="switcher-btn" (click)="toggle()" [class.open]="open()">
+    <div class="sw-avatar" [style.background]="empresa.colorActiva() || 'linear-gradient(135deg,#2563eb,#0891b2)'">
+      {{ empresa.initials() }}
+    </div>
+    <div class="sw-info">
+      <div class="sw-nombre">{{ empresa.displayNombre() }}</div>
+      <div class="sw-ruc">{{ empresa.displayRuc() }}</div>
+    </div>
+    <svg class="sw-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="6 9 12 15 18 9"/>
+    </svg>
+  </button>
+
+  <!-- Dropdown -->
+  @if (open()) {
+    <div class="sw-dropdown">
+
+      <div class="sw-header">EMPRESA ACTIVA</div>
+
+      <!-- Todas las empresas -->
+      <button class="sw-item" [class.active]="empresa.todasSeleccionadas()" (click)="seleccionar(null)">
+        <div class="sw-item-avatar all">AL</div>
+        <div class="sw-item-info">
+          <div class="sw-item-nombre">Todas las empresas</div>
+          <div class="sw-item-ruc">Vista consolidada</div>
+        </div>
+        @if (empresa.todasSeleccionadas()) {
+          <svg class="sw-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        }
+      </button>
+
+      <div class="sw-divider"></div>
+
+      <!-- Lista de empresas -->
+      @if (!empresa.empresas().length) {
+        <div class="sw-vacio">No hay empresas registradas</div>
+      }
+      @for (emp of empresa.empresas(); track emp.EmpresaId) {
+        <button class="sw-item" [class.active]="empresa.activa()?.EmpresaId === emp.EmpresaId"
+                (click)="seleccionar(emp)">
+          <div class="sw-item-avatar" [style.background]="emp.Color || 'var(--accent)'">
+            {{ initial(emp.EmpresaNombre) }}
+          </div>
+          <div class="sw-item-info">
+            <div class="sw-item-nombre">
+              {{ emp.EmpresaNombre }}
+              @if (emp.Principal) { <span class="badge-principal">principal</span> }
+            </div>
+            <div class="sw-item-ruc">{{ emp.Ruc ? 'RUC ' + emp.Ruc : emp.RazonSocial }}</div>
+          </div>
+          @if (empresa.activa()?.EmpresaId === emp.EmpresaId) {
+            <svg class="sw-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          }
+        </button>
+      }
+
+      <div class="sw-divider"></div>
+
+      <!-- Administrar empresas -->
+      <button class="sw-action" (click)="administrar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Administrar empresas
+      </button>
+
+    </div>
+  }
+</div>

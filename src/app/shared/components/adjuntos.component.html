@@ -1,0 +1,50 @@
+<div class="card">
+  <div class="card-head">
+    <h3>{{ titulo() }} @if (adjuntos().length) { <span class="adj-count">{{ adjuntos().length }}</span> }</h3>
+  </div>
+  <div class="card-pad">
+
+    <!-- Dropzone -->
+    <label class="dropzone"
+           [class.over]="dragOver()"
+           (dragover)="$event.preventDefault(); dragOver.set(true)"
+           (dragleave)="dragOver.set(false)"
+           (drop)="onDrop($event)">
+      <input type="file" multiple hidden (change)="onFileInput($event)" />
+      @if (subiendo()) {
+        <div class="dz-title">Subiendo…</div>
+      } @else {
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <div class="dz-title">Suelta archivos aquí o haz clic</div>
+        <div class="dz-sub">Hasta 20 MB por archivo</div>
+      }
+    </label>
+
+    @if (error()) { <div class="adj-error">{{ error() }}</div> }
+
+    <!-- Lista -->
+    @if (cargando()) {
+      <div class="adj-empty">Cargando…</div>
+    } @else if (!adjuntos().length) {
+      <div class="adj-empty">Sin archivos adjuntos.</div>
+    } @else {
+      <div class="adj-list">
+        @for (a of adjuntos(); track a.Id) {
+          <div class="adj-item">
+            <div class="adj-icon">{{ iconoTipo(a.ContentType) }}</div>
+            <div class="adj-info">
+              <div class="adj-name" [title]="a.NombreArchivo">{{ a.NombreArchivo }}</div>
+              <div class="adj-meta">{{ kb(a.TamanoBytes) | number:'1.0-0' }} KB · {{ a.FechaCreacion | date:'dd MMM yyyy' }}</div>
+            </div>
+            <button class="adj-btn" title="Descargar" (click)="descargar(a)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </button>
+            <button class="adj-btn danger" title="Eliminar" (click)="eliminar(a)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+            </button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>

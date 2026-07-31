@@ -1,0 +1,116 @@
+<bwit-topbar title="Dashboard" />
+
+<div class="page-body">
+
+  <!-- KPIs -->
+  <div class="kpi-grid" style="margin-bottom:20px">
+    @if (loadingKpis()) {
+      @for (_ of [1,2,3,4]; track _) {
+        <div class="kpi skeleton" style="height:96px"></div>
+      }
+    } @else if (kpisError()) {
+      @for (lbl of kpiLabels; track lbl) {
+        <div class="kpi kpi--error">
+          <div class="label">{{ lbl }}</div>
+          <div class="value" style="font-size:20px;color:var(--text-faint)">—</div>
+          <div class="delta" style="color:var(--text-faint)">Sin datos del servidor</div>
+        </div>
+      }
+    } @else if (kpis()) {
+      <div class="kpi">
+        <div class="label">Monto Contratado</div>
+        <div class="value"><span class="currency">S/</span>{{ kpis().MontoContratado | number:'1.0-0' }}</div>
+        <div class="delta">Proyectos activos: <strong>{{ kpis().ProyectosActivos }}</strong></div>
+      </div>
+      <div class="kpi">
+        <div class="label">Facturado</div>
+        <div class="value"><span class="currency">S/</span>{{ kpis().Facturado | number:'1.0-0' }}</div>
+        <div class="delta" style="color:var(--success)">{{ pct(kpis().Facturado, kpis().MontoContratado) }}% del contrato</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Cobrado</div>
+        <div class="value"><span class="currency">S/</span>{{ kpis().Cobrado | number:'1.0-0' }}</div>
+        <div class="delta">Pendiente: <span style="color:var(--warning)">S/ {{ kpis().PendienteCobro | number:'1.0-0' }}</span></div>
+      </div>
+      <div class="kpi">
+        <div class="label">Margen</div>
+        <div class="value">{{ kpis().MargenPct | number:'1.0-0' }}<span class="currency" style="margin-left:2px">%</span></div>
+        <div class="delta">Cert. pendientes: {{ kpis().CertificacionesPendientes }}</div>
+      </div>
+    }
+  </div>
+
+  <div class="split-grid">
+
+    <!-- Proyectos activos -->
+    <div class="card">
+      <div class="card-head">
+        <h3>Proyectos Activos</h3>
+        <div class="spacer"></div>
+        <a routerLink="/proyectos" class="btn sm ghost">Ver todos →</a>
+      </div>
+      @if (loadingProyectos()) {
+        <ui-loading label="Cargando proyectos…" />
+      } @else if (!proyectos().length) {
+        <ui-empty title="Sin proyectos activos" />
+      } @else {
+        <table class="table">
+          <thead>
+            <tr><th>Código</th><th>Proyecto</th><th>Cliente</th><th>PM</th><th style="text-align:right">Monto</th><th>Avance</th></tr>
+          </thead>
+          <tbody>
+            @for (p of proyectos(); track p.Id) {
+              <tr [routerLink]="['/proyectos', p.Id]">
+                <td class="id">{{ p.Codigo }}</td>
+                <td class="strong">{{ p.Nombre }}</td>
+                <td class="muted">{{ p.Cliente }}</td>
+                <td class="muted">{{ p.PM }}</td>
+                <td class="num mono">S/ {{ p.MontoTotal | number:'1.0-0' }}</td>
+                <td style="min-width:110px">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div class="progress" style="flex:1">
+                      <div class="bar" [style.width.%]="p.ProgresoPct"
+                           [class.success]="p.ProgresoPct>=80" [class.warning]="p.ProgresoPct<40"></div>
+                    </div>
+                    <span class="muted" style="font-size:11px;width:28px;text-align:right">{{ p.ProgresoPct }}%</span>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+
+    <!-- Col derecha -->
+    <div class="col" style="gap:var(--gap)">
+
+      <!-- Accesos rápidos -->
+      <div class="card">
+        <div class="card-head"><h3>Accesos rápidos</h3></div>
+        <div class="divide-y">
+          <a routerLink="/cotizaciones" class="link-row">
+            <div><div class="ttl">Cotizaciones</div><div class="sub">{{ kpis()?.CotizacionesPendientes ?? 0 }} pendientes</div></div>
+            <span class="arr">›</span>
+          </a>
+          <a routerLink="/certificaciones" class="link-row">
+            <div><div class="ttl">Certificaciones</div><div class="sub">{{ kpis()?.CertificacionesPendientes ?? 0 }} en revisión</div></div>
+            <span class="arr">›</span>
+          </a>
+          <a routerLink="/facturacion" class="link-row">
+            <div><div class="ttl">Facturación</div><div class="sub">Facturas por cobrar</div></div>
+            <span class="arr">›</span>
+          </a>
+          <a routerLink="/proyectos" class="link-row">
+            <div><div class="ttl">Proyectos</div><div class="sub">Ver todos los proyectos</div></div>
+            <span class="arr">›</span>
+          </a>
+          <a routerLink="/pipeline" class="link-row">
+            <div><div class="ttl">Pipeline</div><div class="sub">Oportunidades comerciales</div></div>
+            <span class="arr">›</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

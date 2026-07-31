@@ -1,0 +1,37 @@
+.maestro-head h2 { font-size: 18px; font-weight: 700; margin: 0; }
+.maestro-head p { font-size: 13px; margin: 4px 0 18px; }
+
+.roles-layout { display: grid; grid-template-columns: 240px 1fr; gap: 16px; align-items: start; }
+.roles-list { padding: 8px; display: flex; flex-direction: column; gap: 2px; }
+.rol-item { text-align: left; background: none; border: none; padding: 11px 13px; border-radius: 8px; cursor: pointer; }
+.rol-item:hover { background: var(--surface-2); }
+.rol-item.active { background: #eff4ff; }
+.rol-nombre { font-size: 13.5px; font-weight: 600; }
+.rol-desc { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; }
+
+.perms-panel { padding: 20px; min-height: 300px; }
+.perms-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 60px 20px; }
+.perms-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+.perms-head h3 { font-size: 16px; font-weight: 700; margin: 0; }
+.perms-quick { display: flex; gap: 6px; }
+
+.perms-table { width: 100%; border-collapse: collapse; }
+.perms-table thead th { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); font-weight: 600; padding: 8px 6px; border-bottom: 1px solid var(--border); text-align: left; }
+.perms-table tbody td { padding: 10px 6px; border-bottom: 1px solid var(--border-light, #f1f5f9); }
+.pm-label { font-size: 13.5px; font-weight: 500; }
+
+/* Switch */
+.switch { position: relative; display: inline-block; width: 38px; height: 21px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; inset: 0; background: var(--surface-2); border: 1px solid var(--border); border-radius: 21px; transition: .2s; }
+.slider::before { content: ''; position: absolute; height: 15px; width: 15px; left: 2px; bottom: 2px; background: #fff; border-radius: 50%; transition: .2s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.switch input:checked + .slider { background: #2563eb; border-color: #2563eb; }
+.switch input:checked + .slider.edit { background: #16a34a; border-color: #16a34a; }
+.switch input:checked + .slider::before { transform: translateX(17px); }
+
+.perms-footer { display: flex; justify-content: flex-end; align-items: center; gap: 14px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+.saved-msg { color: var(--success); font-size: 13px; font-weight: 600; }
+
+@media (max-width: 768px) {
+  .roles-layout { grid-template-columns: 1fr; }
+}

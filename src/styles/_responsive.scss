@@ -1,0 +1,115 @@
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE GLOBAL · PC (>1024) · Tablet (768-1024) · Móvil (<768)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Tablet ─────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .page-body { padding: 18px 20px; }
+
+  /* KPIs 4 → 2 columnas */
+  .metrics-grid, .kpi-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Grids de detalle a 1 columna (panel lateral abajo) */
+  .detail-grid { grid-template-columns: 1fr !important; }
+
+  /* Stepper compacto */
+  .stepper { overflow-x: auto; padding-bottom: 4px; }
+  .stepper .step { min-width: 170px; }
+}
+
+/* ── Móvil ──────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .page-body { padding: 14px 12px; }
+
+  /* KPIs a 1 columna en pantallas muy angostas */
+  .metrics-grid, .kpi-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
+  .metric { padding: 12px 14px !important; }
+  .m-value { font-size: 18px !important; }
+
+  /* Formularios a 1 columna */
+  .form-grid-2, .form-grid-3 { grid-template-columns: 1fr !important; }
+
+  /* Tablas con scroll horizontal */
+  .card { overflow-x: auto; }
+  .table { min-width: 620px; }
+
+  /* Modales a pantalla completa */
+  .modal-backdrop { padding: 0 !important; align-items: flex-end !important; }
+  .modal-box {
+    max-width: 100% !important;
+    max-height: 94vh !important;
+    border-radius: 16px 16px 0 0 !important;
+    animation: slideUp .22s ease !important;
+  }
+  @keyframes slideUp { from { transform: translateY(40px); opacity: .6; } to { transform: translateY(0); opacity: 1; } }
+
+  /* Stepper: solo círculos + labels compactos */
+  .stepper .step { min-width: 150px; padding: 10px 12px !important; }
+  .step-connector { display: none; }
+
+  /* Header de cotización/proyecto */
+  .cot-title-row h1 { font-size: 18px !important; }
+  .cot-title-row { gap: 6px !important; }
+  .cot-meta { flex-wrap: wrap; gap: 14px !important; }
+
+  /* Botones de acciones: fila propia y ancho táctil */
+  .cot-title-row > div[style*="margin-left:auto"] {
+    margin-left: 0 !important;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .btn { min-height: 38px; }
+
+  /* Charts BI */
+  .bars-chart { overflow-x: auto; }
+  .bar-group { min-width: 34px; }
+  .hbar-row { grid-template-columns: 110px 1fr 80px !important; gap: 8px !important; }
+
+  /* Filtros chips scrollables */
+  .filter-chips { overflow-x: auto; flex-wrap: nowrap !important; padding-bottom: 4px; }
+  .chip { white-space: nowrap; }
+
+  /* Tabs scrollables */
+  .tabs { overflow-x: auto; }
+  .tab { white-space: nowrap; }
+
+  /* Toasts ancho completo */
+  .toast-container { left: 12px !important; right: 12px !important; }
+  .toast { width: 100% !important; }
+}
+
+/* ── Móvil: sidebar como overlay ────────────────────────────── */
+@media (max-width: 768px) {
+  .app-shell { grid-template-columns: 1fr !important; }
+
+  .app-shell > bwit-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 250px;
+    z-index: 1200;
+    transform: translateX(-100%);
+    transition: transform .22s cubic-bezier(.4,0,.2,1);
+    box-shadow: 4px 0 24px rgba(15,23,42,.18);
+  }
+  .app-shell.mobile-open > bwit-sidebar { transform: translateX(0); }
+
+  /* Backdrop */
+  .sidebar-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(15,23,42,.4);
+    z-index: 1199;
+  }
+
+  /* Hamburguesa visible */
+  .hamburger-btn { display: inline-flex !important; }
+}
+
+/* Hamburguesa: oculta en desktop */
+.hamburger-btn {
+  display: none;
+  background: none; border: none; cursor: pointer;
+  color: var(--text); padding: 6px; border-radius: 8px;
+  align-items: center;
+}
+.hamburger-btn:hover { background: var(--surface-2); }
+.hamburger-btn svg { width: 20px; height: 20px; }

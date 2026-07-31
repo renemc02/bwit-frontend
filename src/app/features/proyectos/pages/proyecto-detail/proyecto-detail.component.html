@@ -1,0 +1,1489 @@
+<bwit-topbar [title]="p()?.Nombre ?? 'Proyecto'" crumb="Proyectos" crumbRoute="/proyectos" />
+
+@if (loading()) {
+  <ui-loading label="Cargando proyecto…" />
+} @else if (!p()) {
+  <div class="page-body"><div class="card"><div class="card-pad" style="text-align:center;padding:40px">Proyecto no encontrado.</div></div></div>
+} @else {
+
+<div class="page-body">
+
+  <!-- ── Header del proyecto ── -->
+  <div class="proj-header">
+    <div class="proj-title-row">
+      <h1>{{ p().Nombre }}</h1>
+      <span class="badge" [class]="p().Servicio | badge">{{ p().Servicio }}</span>
+      <span class="badge" [class]="p().Estado | badge"><span class="dot"></span>{{ p().Estado }}</span>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn secondary">✎ Editar</button>
+        <button class="btn primary" (click)="abrirCert()">+ Nueva certificación</button>
+      </div>
+    </div>
+    <div class="proj-sub">
+      {{ p().Codigo }} · {{ p().Cliente }} · {{ p().Tipo }} ·
+      {{ p().FechaInicio | date:'dd MMM yyyy' }} → {{ p().FechaFin | date:'dd MMM yyyy' }}
+    </div>
+  </div>
+
+  <!-- ── Métricas ── -->
+  <div class="metrics-grid">
+    <div class="metric">
+      <div class="m-label">Contrato Total</div>
+      <div class="m-value"><span class="cur">S/</span>{{ p().MontoTotal | number:'1.2-2' }}</div>
+      <!-- Progreso inline con slider -->
+      <div class="progreso-inline">
+        <div class="progreso-bar-wrap">
+          <div class="progreso-bar-fill" [style.width.%]="p().ProgresoPct"></div>
+        </div>
+        <div class="progreso-row">
+          @if (!editandoProgreso()) {
+            <span class="progreso-pct">{{ p().ProgresoPct }}% avance</span>
+            <button class="progreso-edit-btn" title="Ajustar avance" (click)="abrirProgreso()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+          } @else {
+            <div class="progreso-edit-row">
+              <input type="range" min="0" max="100" step="5"
+                     [(ngModel)]="progresoPctEdit" name="prog_slider"
+                     class="progreso-slider" />
+              <span class="progreso-pct-live">{{ progresoPctEdit }}%</span>
+            </div>
+            <div class="progreso-btns">
+              <button class="btn sm secondary" style="font-size:11px;padding:2px 8px" (click)="recalcularProgreso()" title="Calcular desde certificaciones aprobadas">↺ Auto</button>
+              <button class="btn sm secondary" style="font-size:11px;padding:2px 8px" (click)="cancelarProgreso()">✕</button>
+              <button class="btn sm primary" style="font-size:11px;padding:2px 8px" (click)="guardarProgreso()">✓ Guardar</button>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Facturado / Cobrado</div>
+      <div class="m-value"><span class="cur">S/</span>{{ p().Facturado | number:'1.2-2' }}</div>
+      <div class="m-sub">cobrado S/ {{ p().Cobrado | number:'1.0-0' }}</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Costos del Proyecto</div>
+      <div class="m-value danger"><span class="cur">S/</span>{{ costos() | number:'1.2-2' }}</div>
+      <div class="m-sub">equipo S/ {{ p().CostoEquipo | number:'1.0-0' }} · terceros S/ {{ p().CostoTerceros | number:'1.0-0' }}</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Utilidad Neta</div>
+      <div class="m-value success"><span class="cur">S/</span>{{ utilidad() | number:'1.2-2' }}</div>
+      <div class="m-sub">margen {{ margen() }}%</div>
+    </div>
+  </div>
+
+  <!-- ── Tabs ── -->
+  <div class="tabs">
+    <button class="tab" [class.active]="tab()==='resumen'" (click)="onTabChange('resumen')">Resumen</button>
+    <button class="tab" [class.active]="tab()==='certificaciones'" (click)="onTabChange('certificaciones')">Certificaciones <span class="tab-count">{{ p().Certificaciones.length }}</span></button>
+    <button class="tab" [class.active]="tab()==='ordenes'" (click)="onTabChange('ordenes')">Órdenes de compra</button>
+    <button class="tab" [class.active]="tab()==='facturas'" (click)="onTabChange('facturas')">Facturas</button>
+    <button class="tab" [class.active]="tab()==='equipo'" (click)="onTabChange('equipo')">Equipo <span class="tab-count">{{ p().Asignaciones.length }}</span></button>
+    <button class="tab" [class.active]="tab()==='tercerizados'" (click)="onTabChange('tercerizados')">Tercerizados</button>
+    <button class="tab" [class.active]="tab()==='adjuntos'" (click)="onTabChange('adjuntos')">Adjuntos</button>
+    <button class="tab" [class.active]="tab()==='adendas'" (click)="onTabChange('adendas')">Adendas <span class="tab-count">{{ adendas().length }}</span></button>
+  </div>
+
+  <!-- ── Contenido tabs ── -->
+  <div class="detail-grid">
+    <div class="detail-main">
+
+      @switch (tab()) {
+        @case ('resumen') {
+          <!-- Flujo del proyecto -->
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-head"><h3>Flujo del proyecto</h3></div>
+            <div class="card-pad">
+              <div class="flow">
+                @for (step of flujo; track step.n) {
+                  <div class="flow-step" [class.done]="step.n < pasoActual()" [class.active]="step.n === pasoActual()">
+                    <div class="flow-circle">
+                      @if (step.n < pasoActual()) { ✓ } @else { {{ step.n }} }
+                    </div>
+                    <div class="flow-label">
+                      <div class="flow-paso">PASO {{ step.n }}</div>
+                      <div class="flow-nombre">{{ step.label }}</div>
+                    </div>
+                  </div>
+                }
+              </div>
+              <p class="flow-hint">Este flujo se repite cada periodo de facturación. Para "Por avances", se ejecuta por cada hito de avance aprobado.</p>
+            </div>
+          </div>
+
+          <!-- Actividad reciente (desde certificaciones) -->
+          <div class="card">
+            <div class="card-head"><h3>Actividad reciente</h3></div>
+            <div class="card-pad">
+              @if (!p().Certificaciones.length) {
+                <p class="muted" style="font-size:13px">Sin actividad registrada.</p>
+              } @else {
+                <div class="activity">
+                  @for (c of p().Certificaciones; track c.Id) {
+                    <div class="act-row">
+                      <div class="act-date">{{ c.FechaEnvio | date:'dd MMM' }}</div>
+                      <div class="act-dot" [class.success]="c.Estado==='Aprobada'"></div>
+                      <div class="act-body">
+                        <div class="act-title">{{ c.Codigo }} · {{ c.Periodo }}</div>
+                        <div class="act-sub">S/ {{ c.Monto | number:'1.0-0' }} · {{ c.Estado }}</div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        @case ('certificaciones') {
+          <div class="card">
+            <div class="card-head" style="align-items:flex-start">
+              <p class="cert-intro">Detalle de trabajos realizados que enviamos al cliente para su conformidad (certificación). Una vez aprobada, el cliente nos genera la OC y procedemos a facturar.</p>
+              <button class="btn primary" style="flex:0 0 auto">+ Nueva certificación</button>
+            </div>
+            <table class="table cert-table">
+              <thead>
+                <tr>
+                  <th>ID</th><th>Periodo / Descripción</th><th>Enviada</th><th>Aprobada</th>
+                  <th>OC asociada</th><th>Factura</th><th style="text-align:right">Monto</th>
+                  <th>Estado</th><th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (c of p().Certificaciones; track c.Id) {
+                  <tr>
+                    <td class="id">{{ c.Codigo }}</td>
+                    <td>
+                      <div class="strong" style="font-size:13px">{{ c.Periodo }}</div>
+                      @if (c.Descripcion) { <div class="muted" style="font-size:12px;margin-top:2px">{{ c.Descripcion }}</div> }
+                      @if (c.FechaInicio && c.FechaFin) {
+                        <div class="muted" style="font-size:11px;margin-top:2px">{{ c.FechaInicio | date:'dd MMM' }} – {{ c.FechaFin | date:'dd MMM' }}</div>
+                      }
+                    </td>
+                    <td class="muted">{{ c.FechaEnvio ? (c.FechaEnvio | date:'dd MMM') : '—' }}</td>
+                    <td class="muted">{{ c.FechaAprobacion ? (c.FechaAprobacion | date:'dd MMM') : '—' }}</td>
+                    <td class="muted mono" style="font-size:12px">{{ c.OcAsociada || '–' }}</td>
+                    <td class="muted mono" style="font-size:12px">{{ c.FacturaCodigo || '–' }}</td>
+                    <td class="num mono" style="font-weight:600">S/ {{ c.Monto | number:'1.2-2' }}</td>
+                    <td><span class="badge" [class]="c.Estado | badge"><span class="dot"></span>{{ c.Estado }}</span></td>
+                    <td>
+                      @switch (c.Estado) {
+                        @case ('Borrador') {
+                          <div style="display:flex;gap:6px">
+                            <button class="btn sm secondary" (click)="rechazarCert(c)">✕ Anular</button>
+                            <button class="btn sm primary" (click)="enviarCert(c)">✈ Enviar al cliente</button>
+                          </div>
+                        }
+                        @case ('Pendiente envio') {
+                          <button class="btn sm primary" (click)="enviarCert(c)">✈ Enviar al cliente</button>
+                        }
+                        @case ('En revision') {
+                          <div style="display:flex;gap:6px">
+                            <button class="btn sm secondary" (click)="rechazarCert(c)">✕ Rechazar</button>
+                            <button class="btn sm primary" (click)="aprobarCert(c)">✓ Aprobar</button>
+                          </div>
+                        }
+                        @case ('Observada') {
+                          <div style="display:flex;gap:6px">
+                            <button class="btn sm secondary" (click)="rechazarCert(c)">✕ Rechazar</button>
+                            <button class="btn sm primary" (click)="enviarCert(c)">✈ Reenviar</button>
+                          </div>
+                        }
+                        @case ('Rechazada') {
+                          <span class="badge danger" style="font-size:11px"><span class="dot"></span>Rechazada</span>
+                        }
+                        @case ('Aprobada') {
+                          @if (c.FacturaId) {
+                            <span class="badge success" style="font-size:11px"><span class="dot"></span>Facturada</span>
+                          } @else {
+                            <button class="btn sm primary" (click)="emitirFactura(c)">🧾 Emitir factura</button>
+                          }
+                        }
+                        @default { <span class="muted" style="font-size:12px">—</span> }
+                      }
+                    </td>
+                  </tr>
+                }
+                @if (!p().Certificaciones.length) { <tr><td colspan="9" class="muted" style="text-align:center;padding:24px">Sin certificaciones</td></tr> }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        @case ('equipo') {
+          <!-- KPIs del equipo -->
+          <div class="eq-kpis">
+            <div class="eq-kpi"><div class="eq-kpi-lbl">Miembros</div><div class="eq-kpi-val">{{ p().Asignaciones.length }}</div></div>
+            <div class="eq-kpi"><div class="eq-kpi-lbl">Costo total equipo</div><div class="eq-kpi-val danger">S/ {{ costoTotalEquipo() | number:'1.2-2' }}</div></div>
+            <div class="eq-kpi"><div class="eq-kpi-lbl">Pagado</div><div class="eq-kpi-val warning">S/ {{ totalPagadoEquipo() | number:'1.2-2' }}</div></div>
+            <div class="eq-kpi"><div class="eq-kpi-lbl">Por pagar</div><div class="eq-kpi-val">S/ {{ (costoTotalEquipo() - totalPagadoEquipo()) | number:'1.2-2' }}</div></div>
+          </div>
+
+          <!-- Tabla miembros -->
+          <div class="card" style="margin-top:16px">
+            <div class="card-head" style="display:flex;justify-content:space-between;align-items:center">
+              <h3>Miembros asignados</h3>
+              <button class="btn sm primary" (click)="abrirAsignar()">+ Asignar persona</button>
+            </div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Persona</th><th>Rol en proyecto</th><th>Tipo</th>
+                  <th>Dedicación</th><th>Periodo</th><th>Tarifa</th>
+                  <th style="text-align:right">Costo mensual estimado</th><th></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (a of p().Asignaciones; track a.Id) {
+                  <tr>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:10px">
+                        <div class="av-sm">{{ inicial(a.Recurso) }}</div>
+                        <div>
+                          <div class="strong" style="font-size:13px">{{ a.Recurso }}</div>
+                          <div class="muted" style="font-size:11px">{{ a.SubRol }}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><span class="badge info" style="font-size:11px">{{ a.RolProyecto }}</span></td>
+                    <td><span class="badge" style="font-size:11px">{{ a.TipoContrato }}</span></td>
+                    <td>
+                      @if (a.TipoContrato === 'Recibo x H') {
+                        <span class="mono">{{ a.HorasMes }} h</span>
+                      } @else {
+                        <span class="mono">{{ a.DedicacionPct }}%</span>
+                      }
+                    </td>
+                    <td class="muted" style="font-size:12px">
+                      {{ a.Desde | date:'dd-MMM' }} → {{ a.Hasta ? (a.Hasta | date:'dd-MMM') : '—' }}
+                    </td>
+                    <td class="mono" style="font-size:12px">
+                      @if (a.TipoContrato === 'Recibo x H') {
+                        S/ {{ a.TarifaHora | number:'1.2-2' }} / h
+                      } @else {
+                        S/ {{ a.TarifaMes | number:'1.2-2' }} / mes
+                      }
+                    </td>
+                    <td class="num mono strong">S/ {{ a.CostoMensual | number:'1.2-2' }}</td>
+                    <td>
+                      <div style="display:flex;gap:6px">
+                        <button class="btn sm primary" (click)="abrirPago(a)">$ Registrar pago</button>
+                        <button class="icon-btn danger" title="Quitar del equipo" (click)="quitarAsignacion(a)">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                }
+                @if (!p().Asignaciones.length) {
+                  <tr><td colspan="8" class="muted" style="text-align:center;padding:32px">Sin equipo asignado. Haz clic en "+ Asignar persona" para comenzar.</td></tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Historial de pagos -->
+          <div class="card" style="margin-top:16px">
+            <div class="card-head" style="display:flex;justify-content:space-between;align-items:center">
+              <h3>Historial de pagos al equipo</h3>
+              @if (equipoPagos().length) {
+                <span class="muted" style="font-size:12px">{{ equipoPagos().length }} movimientos</span>
+              }
+            </div>
+            @if (equipoPagosLoaded() && !equipoPagos().length) {
+              <div class="card-pad"><p class="muted" style="text-align:center;padding:16px">Sin pagos registrados aún.</p></div>
+            } @else {
+              <table class="table">
+                <thead>
+                  <tr><th>ID</th><th>Persona</th><th>Periodo</th><th>Concepto</th><th>Tipo</th><th>Fecha</th><th style="text-align:right">Monto</th><th>Cuenta</th><th>Estado</th><th></th></tr>
+                </thead>
+                <tbody>
+                  @for (pg of equipoPagos(); track pg.Id) {
+                    <tr>
+                      <td class="id mono" style="font-size:11px">{{ pg.Codigo }}</td>
+                      <td>
+                        <div class="strong" style="font-size:13px">{{ pg.Recurso }}</div>
+                        <div class="muted" style="font-size:11px">{{ pg.RolProyecto }}</div>
+                      </td>
+                      <td><span class="badge" style="font-size:11px">{{ pg.Periodo }}</span></td>
+                      <td class="muted" style="font-size:12px">{{ pg.Concepto }}</td>
+                      <td><span class="badge" style="font-size:11px">{{ pg.TipoPago }}</span></td>
+                      <td class="muted" style="font-size:12px">{{ pg.FechaPago | date:'dd-MMM' }}</td>
+                      <td class="num mono strong">S/ {{ pg.Monto | number:'1.2-2' }}</td>
+                      <td>
+                        @if (pg.CuentaBancaria) {
+                          <div style="font-size:11.5px">{{ pg.CuentaBancaria }}</div>
+                          @if (pg.ReferenciaPago) { <div class="muted mono" style="font-size:10px">{{ pg.ReferenciaPago }}</div> }
+                        } @else {
+                          <span class="muted" style="font-size:11px">—</span>
+                        }
+                      </td>
+                      <td>
+                        @if (pg.Pagado) {
+                          <span class="badge success" style="font-size:11px">● Pagado {{ pg.FechaPagado | date:'dd-MMM' }}</span>
+                        } @else {
+                          <span class="badge warning" style="font-size:11px">● Programado</span>
+                        }
+                      </td>
+                      <td>
+                        @if (!pg.Pagado) {
+                          <button class="btn sm secondary" (click)="pagarNow(pg)">✓ Pagar</button>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
+        }
+
+        @case ('tercerizados') {
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <p class="muted" style="font-size:13px;margin:0">
+              Servicios subcontratados con proveedores externos. Registra la factura que te emite el proveedor para calcular la utilidad real.
+            </p>
+            <button class="btn sm primary" style="flex-shrink:0;margin-left:16px" (click)="abrirTercerizado()">+ Registrar tercerizado</button>
+          </div>
+          <div class="card">
+            @if (!tercerizados().length && terceriadosLoaded()) {
+              <div class="card-pad" style="text-align:center;padding:32px;color:var(--text-muted)">
+                Sin servicios tercerizados registrados.
+              </div>
+            } @else {
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Proveedor / Servicio</th>
+                    <th>Periodo</th>
+                    <th style="text-align:right">Costo</th>
+                    <th>Factura proveedor</th>
+                    <th>Cuenta de pago</th>
+                    <th>Estado pago</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (t of tercerizados(); track t.Id) {
+                    <tr>
+                      <td>
+                        <div class="strong">{{ t.Proveedor }}</div>
+                        <div class="muted" style="font-size:12px">{{ t.Servicio }}</div>
+                      </td>
+                      <td class="muted" style="font-size:13px">{{ t.Periodo }}</td>
+                      <td class="num mono strong">S/ {{ t.Costo | number:'1.2-2' }}</td>
+                      <td>
+                        @if (t.FacturaProveedor) {
+                          <span style="display:flex;align-items:center;gap:6px;font-size:12.5px">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px;opacity:.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            {{ t.FacturaProveedor }}
+                          </span>
+                        } @else {
+                          <span class="muted" style="font-size:12px">—</span>
+                        }
+                      </td>
+                      <td>
+                        @if (t.CuentaBancaria) {
+                          <div style="font-size:11.5px">{{ t.CuentaBancaria }}</div>
+                          @if (t.ReferenciaPago) { <div class="muted mono" style="font-size:10px">{{ t.ReferenciaPago }}</div> }
+                        } @else {
+                          <span class="muted" style="font-size:11px">—</span>
+                        }
+                      </td>
+                      <td>
+                        @if (t.Pagado) {
+                          <span class="badge success" style="font-size:11px">● Pagada {{ t.FechaPagado | date:'dd-MMM' }}</span>
+                        } @else if ((t.TotalPagado ?? 0) > 0) {
+                          <span class="badge info" style="font-size:11px">● Parcial · saldo S/ {{ t.Saldo | number:'1.0-0' }}</span>
+                        } @else {
+                          <span class="badge warning" style="font-size:11px">● Por pagar</span>
+                        }
+                      </td>
+                      <td>
+                        <div style="display:flex;gap:6px">
+                          @if (!t.Pagado) {
+                            <button class="btn sm secondary" (click)="pagarTercerizado(t)">✓ Pagar</button>
+                          }
+                          @if ((t.TotalPagado ?? 0) > 0) {
+                            <button class="btn sm ghost" title="Ver pagos" (click)="verPagosTc(t)">💰</button>
+                          }
+                          <button class="icon-btn danger" title="Eliminar" (click)="eliminarTercerizado(t)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M9 6V4h6v2"/></svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
+        }
+
+        @case ('adjuntos') {
+          <bwit-adjuntos entidadTipo="Proyecto" [entidadId]="p().Id" titulo="Adjuntos del proyecto" />
+        }
+        @case ('adendas') {
+          <div class="card">
+            <div class="card-head" style="display:flex;justify-content:space-between;align-items:center">
+              <h3>Historial de adendas</h3>
+              <button class="btn sm primary" (click)="abrirAdenda()">+ Nueva adenda</button>
+            </div>
+            <div class="card-pad">
+              @if (!adendas().length) {
+                <p class="muted" style="text-align:center;padding:24px">Sin adendas registradas. Toda modificación de fecha o monto del proyecto debe registrarse aquí.</p>
+              } @else {
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Código</th><th>Tipo</th><th>Monto</th><th>Fecha fin</th>
+                      <th>Motivo</th><th>Estado</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (a of adendas(); track a.Id) {
+                      <tr>
+                        <td class="strong mono" style="font-size:12.5px">{{ a.Codigo }}</td>
+                        <td style="font-size:12.5px">{{ a.Tipo }}</td>
+                        <td style="font-size:12.5px">
+                          @if (a.MontoNuevo != null) {
+                            <div class="mono">S/ {{ a.MontoAnterior | number:'1.2-2' }} → S/ {{ a.MontoNuevo | number:'1.2-2' }}</div>
+                            <div class="muted" style="font-size:11px">{{ a.DiferenciaMonto >= 0 ? '+' : '' }}{{ a.DiferenciaMonto | number:'1.2-2' }}</div>
+                          } @else { <span class="muted">—</span> }
+                        </td>
+                        <td style="font-size:12.5px">
+                          @if (a.FechaFinNueva) {
+                            <div>{{ a.FechaFinAnterior | date:'dd MMM yyyy' }} → {{ a.FechaFinNueva | date:'dd MMM yyyy' }}</div>
+                            <div class="muted" style="font-size:11px">+{{ a.DiasAmpliacion }} días</div>
+                          } @else { <span class="muted">—</span> }
+                        </td>
+                        <td class="muted" style="font-size:12px;max-width:240px">{{ a.Motivo }}</td>
+                        <td><span class="badge" [class]="a.Estado | badge"><span class="dot"></span>{{ a.Estado }}</span></td>
+                        <td>
+                          @if (a.Estado === 'Pendiente') {
+                            <button class="btn sm primary" (click)="aprobarAdenda(a)">✓ Aprobar</button>
+                          } @else if (a.AprobadoPor) {
+                            <span class="muted" style="font-size:11px">{{ a.FechaAprobacion | date:'dd MMM' }} · {{ a.AprobadoPor }}</span>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              }
+            </div>
+          </div>
+        }
+
+        @case ('facturas') {
+          <div class="card">
+            <div class="card-pad">
+              @if (!facturas().length) {
+                <p class="muted" style="text-align:center;padding:24px">Sin facturas emitidas.</p>
+              } @else {
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Factura</th><th>OC</th><th>Emitida</th><th>Vence</th>
+                      <th style="text-align:right">Subtotal</th><th style="text-align:right">IGV</th>
+                      <th style="text-align:right">Total</th><th style="text-align:right">Saldo</th>
+                      <th>Estado</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (f of facturas(); track f.Id) {
+                      <tr>
+                        <td class="strong mono" style="font-size:12.5px">{{ f.Codigo }}</td>
+                        <td class="muted mono" style="font-size:12px">{{ f.OcAsociada || '—' }}</td>
+                        <td class="muted" style="font-size:12.5px">{{ f.FechaEmision | date:'dd-MMM' }}</td>
+                        <td class="muted" style="font-size:12.5px">{{ f.FechaVencimiento | date:'dd-MMM' }}</td>
+                        <td class="mono" style="text-align:right;font-size:12.5px">S/ {{ f.Subtotal | number:'1.2-2' }}</td>
+                        <td class="mono" style="text-align:right;font-size:12.5px">S/ {{ f.Igv | number:'1.2-2' }}</td>
+                        <td class="mono strong" style="text-align:right">S/ {{ f.Total | number:'1.2-2' }}</td>
+                        <td class="mono" style="text-align:right">S/ {{ f.Saldo | number:'1.2-2' }}</td>
+                        <td><span class="badge" [class]="f.Estado | badge"><span class="dot"></span>{{ f.Estado }}</span></td>
+                        <td>
+                          <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap">
+                            @if (f.Estado === 'Borrador') {
+                              <button class="btn sm secondary" (click)="accionFactura(f, 'Validada')">Validar</button>
+                              <button class="btn sm primary" (click)="accionFactura(f, 'Aprobada')">✓ Aprobar</button>
+                            }
+                            @if (f.Estado === 'Pendiente' && !f.EnviadoSunat) {
+                              <button class="btn sm secondary" (click)="accionFactura(f, 'Enviada SUNAT')">📤 Enviar SUNAT</button>
+                            }
+                            @if (f.Estado === 'Pendiente' && f.EnviadoSunat && !f.EnviadoCliente) {
+                              <button class="btn sm secondary" (click)="accionFactura(f, 'Enviada cliente')">✉ Enviar cliente</button>
+                            }
+                            @if (f.Estado === 'Pendiente' || f.Estado === 'Parcial' || f.Estado === 'Vencida') {
+                              <button class="btn sm secondary" (click)="cobrarFactura(f)">$ Cobrar</button>
+                            }
+                            <button class="icon-btn" title="Trazabilidad" (click)="verHistorialFactura(f)">🕒</button>
+                            <button class="icon-btn" title="Cobros recibidos" (click)="verCobros(f)">💰</button>
+                          </div>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              }
+            </div>
+          </div>
+        }
+
+        @default {
+          <div class="card"><div class="card-pad" style="text-align:center;padding:40px;color:var(--text-muted)">Sección en construcción.</div></div>
+        }
+      }
+    </div>
+
+    <!-- ── Panel lateral ── -->
+    <div class="detail-side">
+      <div class="card">
+        <div class="card-head"><h3>Cliente</h3></div>
+        <div class="card-pad">
+          <div class="side-nombre">{{ p().Cliente }}</div>
+          @if (p().PM) {
+            <div class="side-row" style="margin-top:12px">
+              <div class="side-pm-avatar">{{ inicial(p().PM) }}</div>
+              <div>
+                <div class="side-pm-nombre">{{ p().PM }}</div>
+                <div class="muted" style="font-size:12px">Project Manager</div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Contrato firmado -->
+      <bwit-adjuntos entidadTipo="Proyecto" [entidadId]="p().Id" titulo="Contrato firmado" categoria="Contrato" />
+
+      <div class="card">
+        <div class="card-head"><h3>Equipo</h3></div>
+        <div class="card-pad">
+          @for (a of p().Asignaciones; track a.Id) {
+            <div class="side-row" style="margin-bottom:10px">
+              <div class="side-pm-avatar">{{ inicial(a.Recurso) }}</div>
+              <div>
+                <div class="side-pm-nombre">{{ a.Recurso }}</div>
+                <div class="muted" style="font-size:12px">{{ a.RolProyecto }}</div>
+              </div>
+            </div>
+          }
+          @if (!p().Asignaciones.length) { <p class="muted" style="font-size:13px">Sin miembros asignados.</p> }
+          <button class="btn sm ghost" style="margin-top:6px">+ Asignar miembros</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+}
+
+<!-- ═══ Modal Nueva certificación ═══ -->
+@if (modalCert()) {
+  <div class="modal-backdrop" (click)="cerrarCert()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Nueva certificación · {{ p()?.Nombre }}</h2>
+        <button class="icon-btn" (click)="cerrarCert()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid-2">
+          <div class="form-row">
+            <label>Periodo <span class="req">*</span></label>
+            <input class="input" type="text" [(ngModel)]="certForm.periodo" name="periodo" placeholder="Ej. Mayo 2026" />
+          </div>
+          <div class="form-row">
+            <label>Tipo</label>
+            <select class="select" [(ngModel)]="certForm.tipo" name="tipoCert">
+              <option value="Mensual">Mensual</option>
+              <option value="Por avance">Por avance</option>
+              <option value="Hito">Hito</option>
+              <option value="Extra">Extra</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-2" style="margin-top:12px">
+          <div class="form-row">
+            <label>Fecha inicio del periodo</label>
+            <input class="input" type="date" [(ngModel)]="certForm.fechaInicio" name="certFechaInicio" />
+          </div>
+          <div class="form-row">
+            <label>Fecha fin del periodo</label>
+            <input class="input" type="date" [(ngModel)]="certForm.fechaFin" name="certFechaFin" />
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-top:14px">
+          <label>Descripción de trabajos realizados</label>
+          <textarea class="input" rows="3" [(ngModel)]="certForm.descripcion" name="descCert"
+                    placeholder="Detalle de entregables y avances del periodo…"></textarea>
+        </div>
+
+        <div class="form-grid-2" style="margin-top:14px">
+          <div class="form-row">
+            <label>Monto a certificar (sin IGV) <span class="req">*</span></label>
+            <input class="input" type="number" [(ngModel)]="certForm.montoSinIgv" name="montoSin"
+                   (ngModelChange)="recalcCert()" min="0" step="0.01" />
+          </div>
+          <div class="form-row">
+            <label>Total con IGV</label>
+            <input class="input" type="text" [value]="(certTotal() | number:'1.2-2')" readonly
+                   style="background:var(--surface-2)" />
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-top:14px">
+          <label>Adjuntar entregables (opcional)</label>
+          <div class="dropzone">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:24px;height:24px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <div class="dz-title">Suelta entregables aquí</div>
+            <div class="dz-sub">Documentos, reportes, capturas</div>
+          </div>
+        </div>
+
+        @if (certError()) { <div class="error-msg" style="margin-top:12px">{{ certError() }}</div> }
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="cerrarCert()">Cancelar</button>
+        <button class="btn secondary" (click)="guardarCert('Borrador')">Guardar borrador</button>
+        <button class="btn primary" (click)="guardarCert('enviar')">✈ Crear y enviar al cliente</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal Aprobar certificación (registrar OC) ═══ -->
+@if (modalAprobar()) {
+  <div class="modal-backdrop" (click)="cerrarAprobar()">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:520px">
+      <div class="modal-header">
+        <h2>Aprobar certificación {{ certAprobar()?.Codigo }}</h2>
+        <button class="icon-btn" (click)="cerrarAprobar()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="cert-resumen">
+          <div class="cr-codigo">{{ certAprobar()?.Codigo }} · {{ certAprobar()?.Periodo }}</div>
+          <div class="cr-desc">{{ certAprobar()?.Descripcion }}</div>
+          <div class="cr-monto">S/ {{ certAprobar()?.Monto | number:'1.2-2' }}</div>
+        </div>
+        <p class="muted" style="font-size:12.5px;margin:12px 0">
+          Al aprobar esta certificación se registra la orden de compra que el cliente nos emite.
+          Después podrás emitir la factura desde el botón <strong>Emitir factura</strong>.
+        </p>
+        <div class="form-row">
+          <label>N° de orden de compra del cliente <span class="req">*</span></label>
+          <input class="input" [(ngModel)]="ocForm.numeroOC" name="oc_num" placeholder="Ej. OC-CA-2026-08821" />
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label>N° de recepción <span class="muted" style="font-weight:400;font-size:11px">(opcional)</span></label>
+          <input class="input" [(ngModel)]="ocForm.numeroRecepcion" name="oc_recep" placeholder="Ej. REC-2026-0451" />
+        </div>
+        <div class="form-grid-2" style="margin-top:12px">
+          <div class="form-row">
+            <label>Tipo de OC</label>
+            <select class="select" [(ngModel)]="ocForm.tipoOC" name="oc_tipo">
+              <option value="Por avance">Por avance</option>
+              <option value="Mensual">Mensual</option>
+              <option value="Total">Total</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Fecha de aprobación</label>
+            <input class="input" type="date" [(ngModel)]="ocForm.fechaAprobacion" name="oc_fecha" />
+          </div>
+        </div>
+        @if (ocError()) { <div class="error-msg" style="margin-top:12px">{{ ocError() }}</div> }
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="cerrarAprobar()">Cancelar</button>
+        <button class="btn primary" (click)="confirmarAprobar()">✓ Aprobar y registrar OC</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal Emitir factura desde certificación ═══ -->
+@if (modalFactura()) {
+  <div class="modal-backdrop" (click)="cerrarFactura()">
+    <div class="modal-box fac-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Emitir factura {{ facForm.serie }}-{{ facForm.correlativo }}</h2>
+        <button class="icon-btn" (click)="cerrarFactura()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Banner de contexto -->
+        <div class="fac-context">
+          <div class="fac-ctx-col">
+            <div class="fac-ctx-label">Cliente</div>
+            <div class="fac-ctx-val">{{ p()?.Cliente }}</div>
+            <div class="fac-ctx-sub">RUC {{ p()?.ClienteRuc || '—' }}</div>
+          </div>
+          <div class="fac-ctx-col">
+            <div class="fac-ctx-label">Proyecto</div>
+            <div class="fac-ctx-val">{{ p()?.Nombre }}</div>
+            <div class="fac-ctx-sub">{{ p()?.Codigo }}</div>
+          </div>
+          <div class="fac-ctx-col">
+            <div class="fac-ctx-label">Certificación</div>
+            <div class="fac-ctx-val">{{ certFacturar()?.Codigo }}</div>
+            <div class="fac-ctx-sub">Aprobada {{ certFacturar()?.FechaAprobacion | date:'dd MMM' }}</div>
+          </div>
+          <div class="fac-ctx-col">
+            <div class="fac-ctx-label">Orden de compra</div>
+            <div class="fac-ctx-val">{{ certFacturar()?.OcAsociada || '—' }}</div>
+            <div class="fac-ctx-sub">Monto S/ {{ certFacturar()?.Monto | number:'1.2-2' }}</div>
+          </div>
+        </div>
+
+        <!-- Fila 1: Comprobante + Serie/Correlativo -->
+        <div class="form-grid-2" style="margin-top:16px">
+          <div class="form-row">
+            <label>Tipo de comprobante</label>
+            <select class="select" [(ngModel)]="facForm.tipoComprobante" name="fac_tipo" (ngModelChange)="onTipoComprobanteChange()">
+              <option value="Factura">Factura</option>
+              <option value="Boleta">Boleta</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Serie / Correlativo</label>
+            <div style="display:flex;gap:8px">
+              <input class="input" style="width:80px" [(ngModel)]="facForm.serie" name="fac_serie" readonly />
+              <input class="input" style="flex:1" [(ngModel)]="facForm.correlativo" name="fac_corr" readonly />
+            </div>
+          </div>
+        </div>
+
+        <!-- Fila 2: Periodo + Fecha emisión -->
+        <div class="form-grid-2" style="margin-top:12px">
+          <div class="form-row">
+            <label>Periodo del servicio <span class="fac-hint">(lo que se está facturando)</span></label>
+            <input class="input" [(ngModel)]="facForm.periodoServicio" name="fac_periodo" />
+          </div>
+          <div class="form-row">
+            <label>Fecha de emisión <span class="fac-hint">(hoy)</span></label>
+            <input class="input" type="date" [(ngModel)]="facForm.fechaEmision" name="fac_fecha" />
+          </div>
+        </div>
+
+        <!-- Fila 3: Condición pago + Moneda -->
+        <div class="form-grid-2" style="margin-top:12px">
+          <div class="form-row">
+            <label>Condición de pago</label>
+            <select class="select" [(ngModel)]="facForm.condicionPago" name="fac_cond" (ngModelChange)="calcVencimiento()">
+              <option value="Contado">Contado</option>
+              <option value="Crédito 15 días">Crédito 15 días</option>
+              <option value="Crédito 30 días">Crédito 30 días</option>
+              <option value="Crédito 45 días">Crédito 45 días</option>
+              <option value="Crédito 60 días">Crédito 60 días</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Moneda</label>
+            <select class="select" [(ngModel)]="facForm.moneda" name="fac_moneda">
+              <option value="PEN">PEN — Soles</option>
+              <option value="USD">USD — Dólares</option>
+            </select>
+          </div>
+        </div>
+        <div class="fac-vence muted">Vence el <strong>{{ facVencimiento() }}</strong></div>
+
+        <!-- Items de la factura -->
+        <div class="fac-items-head">
+          <label style="font-weight:600">Items de la factura</label>
+          <button class="btn sm secondary" (click)="addFacItem()">+ Agregar item</button>
+        </div>
+        <p class="fac-items-hint muted">⚠ Incluye el periodo del servicio en cada item para que el cliente sepa qué está pagando.</p>
+        <table class="items-table">
+          <thead><tr><th>Descripción</th><th style="width:60px">Cant.</th><th style="width:100px">P. Unitario</th><th style="width:110px;text-align:right">Subtotal</th><th style="width:30px"></th></tr></thead>
+          <tbody>
+            @for (it of facItems(); track $index) {
+              <tr>
+                <td><input class="input sm" [(ngModel)]="it.Descripcion" [name]="'fd_'+$index" /></td>
+                <td><input class="input sm" type="number" [(ngModel)]="it.Cantidad" [name]="'fc_'+$index" (ngModelChange)="calcFacTotales()" min="0" /></td>
+                <td><input class="input sm" type="number" [(ngModel)]="it.PrecioUnitario" [name]="'fp_'+$index" (ngModelChange)="calcFacTotales()" min="0" step="0.01" /></td>
+                <td class="num mono" style="text-align:right">S/ {{ (it.Cantidad * it.PrecioUnitario) | number:'1.2-2' }}</td>
+                <td><button class="icon-btn" (click)="removeFacItem($index)">✕</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <!-- Checkboxes -->
+        <div class="fac-checks">
+          <label class="check-row"><input type="checkbox" [(ngModel)]="facForm.enviarSunat" name="fac_sunat" /> Enviar a SUNAT al emitir (facturación electrónica)</label>
+          <label class="check-row"><input type="checkbox" [(ngModel)]="facForm.enviarEmail" name="fac_email" /> Enviar PDF + XML a {{ p()?.ContactoEmail || 'cliente' }}</label>
+          <label class="check-row"><input type="checkbox" [(ngModel)]="facForm.aplicaDetraccion" name="fac_det" /> Aplica detracción (12% — servicios)</label>
+        </div>
+
+        <!-- Totales -->
+        <div class="fac-totales">
+          <div class="fac-total-row"><span>Subtotal</span><span>S/ {{ facSubtotal() | number:'1.2-2' }}</span></div>
+          <div class="fac-total-row"><span>IGV (18%)</span><span>S/ {{ facIgv() | number:'1.2-2' }}</span></div>
+          <div class="fac-total-row total"><span>Total</span><span>S/ {{ facTotal() | number:'1.2-2' }}</span></div>
+        </div>
+
+        @if (facError()) { <div class="error-msg" style="margin-top:12px">{{ facError() }}</div> }
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="cerrarFactura()">Cancelar</button>
+        <button class="btn secondary" (click)="confirmarFactura('borrador')" [disabled]="facturando()">Guardar borrador</button>
+        <button class="btn primary" (click)="confirmarFactura('emitir')" [disabled]="facturando()">
+          {{ facturando() ? 'Emitiendo…' : '✓ Emitir y enviar a SUNAT' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal Trazabilidad / Historial de factura ═══ -->
+@if (modalHistorial()) {
+  <div class="modal-backdrop" (click)="cerrarHistorial()">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:480px">
+      <div class="modal-header">
+        <h2>Trazabilidad · {{ facHistorialOf()?.Codigo }}</h2>
+        <button class="icon-btn" (click)="cerrarHistorial()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        @if (!facHistorial().length) {
+          <p class="muted" style="text-align:center;padding:16px">Sin movimientos registrados aún.</p>
+        } @else {
+          <div class="timeline">
+            @for (h of facHistorial(); track h.Id) {
+              <div class="tl-row">
+                <div class="tl-date">{{ h.FechaAccion | date:'dd MMM, HH:mm' }}</div>
+                <div class="tl-dot success"></div>
+                <div>
+                  <div class="tl-title">{{ h.Accion }}</div>
+                  @if (h.UsuarioNombre) { <div class="tl-sub">Por {{ h.UsuarioNombre }}</div> }
+                  @if (h.Comentario) { <div class="tl-sub">{{ h.Comentario }}</div> }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="cerrarHistorial()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal Nueva adenda ═══ -->
+@if (modalAdenda()) {
+  <div class="modal-backdrop" (click)="cerrarAdenda()">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:480px">
+      <div class="modal-header">
+        <h2>Nueva adenda · {{ p()?.Codigo }}</h2>
+        <button class="icon-btn" (click)="cerrarAdenda()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label>Tipo de adenda <span class="req">*</span></label>
+          <select class="select" [(ngModel)]="adeForm.tipo" name="ade_tipo">
+            <option value="Incremento monto">Incremento de monto</option>
+            <option value="Ampliación plazo">Ampliación de plazo</option>
+            <option value="Ambos">Ambos (monto y plazo)</option>
+          </select>
+        </div>
+
+        @if (adeForm.tipo === 'Incremento monto' || adeForm.tipo === 'Ambos') {
+          <div class="form-row" style="margin-top:12px">
+            <label>Nuevo monto total <span class="req">*</span></label>
+            <div class="muted" style="font-size:12px;margin-bottom:4px">Monto actual: S/ {{ p()?.MontoTotal | number:'1.2-2' }}</div>
+            <input class="input" type="number" step="0.01" [(ngModel)]="adeForm.montoNuevo" name="ade_monto" />
+          </div>
+        }
+
+        @if (adeForm.tipo === 'Ampliación plazo' || adeForm.tipo === 'Ambos') {
+          <div class="form-row" style="margin-top:12px">
+            <label>Nueva fecha de fin <span class="req">*</span></label>
+            <div class="muted" style="font-size:12px;margin-bottom:4px">Fecha fin actual: {{ p()?.FechaFin | date:'dd MMM yyyy' }}</div>
+            <input class="input" type="date" [(ngModel)]="adeForm.fechaFinNueva" name="ade_fecha" />
+          </div>
+        }
+
+        <div class="form-row" style="margin-top:12px">
+          <label>Motivo <span class="req">*</span></label>
+          <textarea class="input" rows="3" [(ngModel)]="adeForm.motivo" name="ade_motivo"
+                    placeholder="Describe el motivo de esta adenda..."></textarea>
+        </div>
+
+        @if (adendaError()) { <div class="error-msg" style="margin-top:12px">{{ adendaError() }}</div> }
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="cerrarAdenda()">Cancelar</button>
+        <button class="btn primary" (click)="guardarAdenda()">Registrar adenda</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal Registrar cobro ═══ -->
+@if (modalCobro()) {
+  <div class="modal-backdrop" (click)="modalCobro.set(false)">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:400px">
+      <div class="modal-header">
+        <h2>Registrar cobro · {{ facturaACobrar?.Codigo }}</h2>
+        <button class="icon-btn" (click)="modalCobro.set(false)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="cert-resumen">
+          <div class="cr-codigo">{{ facturaACobrar?.Codigo }}</div>
+          <div class="cr-monto">S/ {{ facturaACobrar?.Total | number:'1.2-2' }}</div>
+          <div class="muted" style="font-size:11.5px;margin-top:4px">
+            Cobrado: S/ {{ ((facturaACobrar?.Total ?? 0) - (facturaACobrar?.Saldo ?? 0)) | number:'1.2-2' }} ·
+            <strong style="color:var(--danger)">Saldo: S/ {{ facturaACobrar?.Saldo | number:'1.2-2' }}</strong>
+          </div>
+        </div>
+        <div class="form-grid-2" style="margin-top:14px">
+          <div class="form-row">
+            <label>Monto a cobrar (S/) <span class="req">*</span></label>
+            <input class="input" type="number" step="0.01" min="0.01"
+                   [(ngModel)]="montoCobro" name="montoCobro" />
+          </div>
+          <div class="form-row">
+            <label>Fecha de cobro</label>
+            <input class="input" type="date" [(ngModel)]="cobroForm.fechaPago" name="cobro_fecha" />
+          </div>
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label>Banco / Cuenta de ingreso <span class="req">*</span></label>
+          <select class="select" [(ngModel)]="cobroForm.cuentaBancariaId" name="cobro_cuenta">
+            <option [ngValue]="null">— Selecciona cuenta —</option>
+            @for (cb of cuentasBancarias(); track cb.Id) {
+              <option [ngValue]="cb.Id">{{ cb.Banco }} · {{ cb.Alias }} ({{ cb.Moneda }})</option>
+            }
+          </select>
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label>N° de operación / Referencia</label>
+          <input class="input" [(ngModel)]="cobroForm.referencia" name="cobro_ref" placeholder="Ej. OP-88472913" />
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label>Notas <span class="muted" style="font-weight:400;font-size:11px">(opcional)</span></label>
+          <input class="input" [(ngModel)]="cobroForm.notas" name="cobro_notas" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="modalCobro.set(false)">Cancelar</button>
+        <button class="btn primary" (click)="confirmarCobro()">$ Registrar cobro</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal Rechazar certificación ═══ -->
+@if (modalRechazoCert()) {
+  <div class="modal-backdrop" (click)="modalRechazoCert.set(false)">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:420px">
+      <div class="modal-header" style="border-bottom:1px solid #fee2e2">
+        <h2 style="color:#dc2626">Rechazar certificación</h2>
+        <button class="icon-btn" (click)="modalRechazoCert.set(false)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="cert-resumen">
+          <div class="cr-codigo">{{ certARechazar?.Codigo }} · {{ certARechazar?.Periodo }}</div>
+          <div class="cr-monto" style="font-size:15px">S/ {{ certARechazar?.Monto | number:'1.2-2' }}</div>
+        </div>
+        <div class="form-row" style="margin-top:14px">
+          <label>Motivo del rechazo <span class="muted" style="font-weight:400;font-size:11px">(opcional)</span></label>
+          <textarea class="input" rows="3" [(ngModel)]="motivoRechazo" name="motivoRechazoCert"
+                    placeholder="Ej. Los entregables no cumplen los criterios acordados..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="modalRechazoCert.set(false)">Cancelar</button>
+        <button class="btn danger" (click)="confirmarRechazoCert()">✕ Rechazar certificación</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal Asignar persona al equipo ═══ -->
+@if (modalAsignar()) {
+  <div class="modal-backdrop" (click)="cerrarAsignar()">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:500px">
+      <div class="modal-header">
+        <h2>Asignar persona · {{ p().Nombre }}</h2>
+        <button class="icon-btn" (click)="cerrarAsignar()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label>Persona</label>
+          <select class="select" [(ngModel)]="asigForm.personalId" name="asig_persona" (ngModelChange)="onPersonalChange()">
+            <option [ngValue]="null">— Selecciona —</option>
+            @for (p of personalList(); track p.Id) {
+              <option [ngValue]="p.Id">{{ p.Nombres }} {{ p.Apellidos }} — {{ p.Cargo }} (S/ {{ p.SueldoActual | number:'1.0-0' }}K/mes)</option>
+            }
+          </select>
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label>Rol en este proyecto</label>
+          <input class="input" [(ngModel)]="asigForm.rolProyecto" name="asig_rol" placeholder="Ej. Tech Lead, Analista, PM" />
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label>Tipo de contrato</label>
+          <select class="select" [(ngModel)]="asigForm.tipoContrato" name="asig_tipo">
+            <option value="Planilla">Planilla</option>
+            <option value="Recibo x H">Recibo x Honorarios</option>
+          </select>
+        </div>
+        @if (asigForm.tipoContrato !== 'Recibo x H') {
+          <div class="form-row" style="margin-top:12px">
+            <label>% de dedicación: {{ asigForm.dedicacionPct }}%</label>
+            <input type="range" min="10" max="100" step="10" [(ngModel)]="asigForm.dedicacionPct" name="asig_dedic" style="width:100%" />
+            <div class="muted" style="font-size:12px;margin-top:4px">
+              Costo mensual estimado: <strong>S/ {{ costoEstimado() | number:'1.2-2' }}</strong>
+            </div>
+          </div>
+        } @else {
+          <div class="form-grid-2" style="margin-top:12px">
+            <div class="form-row">
+              <label>Horas/mes</label>
+              <input class="input" type="number" [(ngModel)]="asigForm.horasMes" name="asig_horas" min="1" (ngModelChange)="calcCosto()" />
+            </div>
+            <div class="form-row">
+              <label>Tarifa por hora (S/)</label>
+              <input class="input" type="number" [(ngModel)]="asigForm.tarifaHora" name="asig_tarifa" min="0" step="0.01" (ngModelChange)="calcCosto()" />
+            </div>
+          </div>
+          <div class="muted" style="font-size:12px;margin-top:6px">
+            Costo mensual estimado: <strong>S/ {{ costoEstimado() | number:'1.2-2' }}</strong>
+          </div>
+        }
+        <div class="form-grid-2" style="margin-top:12px">
+          <div class="form-row">
+            <label>Desde</label>
+            <input class="input" type="date" [(ngModel)]="asigForm.fechaInicio" name="asig_desde" />
+          </div>
+          <div class="form-row">
+            <label>Hasta</label>
+            <input class="input" type="date" [(ngModel)]="asigForm.fechaFin" name="asig_hasta" />
+          </div>
+        </div>
+        @if (asigError()) { <div class="error-msg" style="margin-top:12px">{{ asigError() }}</div> }
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="cerrarAsignar()">Cancelar</button>
+        <button class="btn primary" (click)="confirmarAsignar()">✓ Asignar</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal Registrar pago al equipo ═══ -->
+@if (modalPago()) {
+  <div class="modal-backdrop" (click)="cerrarPago()">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:480px">
+      <div class="modal-header">
+        <h2>Registrar pago · {{ pagoAsig()?.Recurso }}</h2>
+        <button class="icon-btn" (click)="cerrarPago()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <!-- Banner persona -->
+        <div class="fac-context" style="grid-template-columns:1fr auto;gap:12px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="av-sm" style="width:40px;height:40px;font-size:14px">{{ inicial(pagoAsig()?.Recurso ?? '') }}</div>
+            <div>
+              <div class="strong">{{ pagoAsig()?.Recurso }}</div>
+              <div class="muted" style="font-size:12px">{{ pagoAsig()?.RolProyecto }} · {{ pagoAsig()?.TipoContrato }}</div>
+            </div>
+          </div>
+          <div style="text-align:right">
+            <div class="muted" style="font-size:10px;text-transform:uppercase">Tarifa</div>
+            <div class="mono strong">
+              @if (pagoAsig()?.TipoContrato === 'Recibo x H') {
+                S/ {{ pagoAsig()?.TarifaHora | number:'1.2-2' }} / h
+              } @else {
+                S/ {{ pagoAsig()?.TarifaMes | number:'1.2-2' }} / mes
+              }
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid-2" style="margin-top:14px">
+          <div class="form-row">
+            <label>Tipo de pago</label>
+            <select class="select" [(ngModel)]="pagoForm.tipoPago" name="pag_tipo">
+              <option value="Planilla">Planilla</option>
+              <option value="Recibo x H">Recibo x H</option>
+              <option value="Bono">Bono</option>
+              <option value="Otro">Otro</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Periodo</label>
+            <input class="input" [(ngModel)]="pagoForm.periodo" name="pag_periodo" placeholder="Ej. Mayo 2026" />
+          </div>
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label>Concepto</label>
+          <input class="input" [(ngModel)]="pagoForm.concepto" name="pag_concepto" placeholder="Ej. Sueldo mayo 2026 (30%)" />
+        </div>
+        <div class="form-grid-2" style="margin-top:12px">
+          <div class="form-row">
+            <label>Monto (S/)</label>
+            <input class="input" type="number" step="0.01" [(ngModel)]="pagoForm.monto" name="pag_monto" />
+            @if (pagoAsig()) {
+              <div class="muted" style="font-size:11px;margin-top:3px">Sugerido por la asignación: S/ {{ pagoAsig()!.CostoMensual | number:'1.2-2' }}</div>
+            }
+          </div>
+          <div class="form-row">
+            <label>Fecha de pago</label>
+            <input class="input" type="date" [(ngModel)]="pagoForm.fechaPago" name="pag_fecha" />
+          </div>
+        </div>
+        <label class="check-row" style="margin-top:14px">
+          <input type="checkbox" [(ngModel)]="pagoForm.pagado" name="pag_pagado" />
+          Marcar como pagado ahora (si no, queda programado)
+        </label>
+        @if (pagoError()) { <div class="error-msg" style="margin-top:12px">{{ pagoError() }}</div> }
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="cerrarPago()">Cancelar</button>
+        <button class="btn primary" (click)="confirmarPago()">{{ pagoForm.pagado ? '✓ Pagar ahora' : '✓ Programar pago' }}</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal Registrar tercerizado ═══ -->
+@if (modalTercerizado()) {
+  <div class="modal-backdrop" (click)="cerrarTercerizado()">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:480px">
+      <div class="modal-header">
+        <h2>Registrar tercerizado · {{ p().Nombre }}</h2>
+        <button class="icon-btn" (click)="cerrarTercerizado()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label>Proveedor <span class="req">*</span></label>
+          @if (proveedoresList().length) {
+            <select class="select" [(ngModel)]="tcForm.proveedorId" name="tc_prov_id" (ngModelChange)="onProveedorChange()">
+              <option [ngValue]="null">— Selecciona proveedor —</option>
+              @for (p of proveedoresList(); track p.Id) {
+                <option [ngValue]="p.Id">{{ p.RazonSocial }}@if (p.NombreCorto) { · {{ p.NombreCorto }} }</option>
+              }
+            </select>
+            <input class="input" style="margin-top:6px" [(ngModel)]="tcForm.proveedorNombre" name="tc_prov_otro"
+                   placeholder="O escribe el nombre si no está en la lista" />
+          } @else {
+            <input class="input" [(ngModel)]="tcForm.proveedorNombre" name="tc_prov"
+                   placeholder="Ej. ManPower Outsourcing" />
+          }
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label>Servicio / Descripción <span class="req">*</span></label>
+          <input class="input" [(ngModel)]="tcForm.servicio" name="tc_serv" placeholder="Ej. Ingeniero FinOps senior (sprint 1-2)" />
+        </div>
+        <div class="form-grid-2" style="margin-top:12px">
+          <div class="form-row">
+            <label>Periodo <span class="req">*</span></label>
+            <input class="input" [(ngModel)]="tcForm.periodo" name="tc_per" placeholder="Ej. Mayo 2026" />
+          </div>
+          <div class="form-row">
+            <label>Moneda</label>
+            <select class="select" [(ngModel)]="tcForm.moneda" name="tc_mon">
+              <option value="PEN">S/ Soles</option>
+              <option value="USD">$ Dólares</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid-2" style="margin-top:12px">
+          <div class="form-row">
+            <label>Costo <span class="req">*</span></label>
+            <input class="input" type="number" step="0.01" [(ngModel)]="tcForm.costo" name="tc_costo" />
+          </div>
+          <div class="form-row">
+            <label>N° Factura del proveedor</label>
+            <input class="input" [(ngModel)]="tcForm.facturaProveedor" name="tc_fac" placeholder="Ej. E001-2451" />
+          </div>
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label>Fecha de pago programada</label>
+          <input class="input" type="date" [(ngModel)]="tcForm.fechaPago" name="tc_fecha" />
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label>Notas <span class="muted" style="font-weight:400;font-size:11px">(opcional)</span></label>
+          <textarea class="input" rows="2" [(ngModel)]="tcForm.notas" name="tc_notas"></textarea>
+        </div>
+        @if (tcError()) { <div class="error-msg" style="margin-top:12px">{{ tcError() }}</div> }
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="cerrarTercerizado()">Cancelar</button>
+        <button class="btn primary" (click)="confirmarTercerizado()">Registrar tercerizado</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal Pagar tercerizado (banco/cuenta) ═══ -->
+@if (modalPagoTc()) {
+  <div class="modal-backdrop" (click)="modalPagoTc.set(false)">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:440px">
+      <div class="modal-header">
+        <h2>Pagar a proveedor</h2>
+        <button class="icon-btn" (click)="modalPagoTc.set(false)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="cert-resumen">
+          <div class="cr-codigo">{{ tcAPagar?.Proveedor }}</div>
+          <div class="cr-desc muted" style="font-size:12px">{{ tcAPagar?.Servicio }}
+            @if (tcAPagar?.FacturaProveedor) { · Factura {{ tcAPagar?.FacturaProveedor }} }
+          </div>
+          <div class="cr-monto">S/ {{ tcAPagar?.Costo | number:'1.2-2' }}</div>
+          @if ((tcAPagar?.TotalPagado ?? 0) > 0) {
+            <div class="muted" style="font-size:11.5px;margin-top:4px">
+              Pagado: S/ {{ tcAPagar?.TotalPagado | number:'1.2-2' }} ·
+              <strong style="color:var(--danger)">Saldo: S/ {{ tcAPagar?.Saldo | number:'1.2-2' }}</strong>
+            </div>
+          }
+        </div>
+        <div class="form-row" style="margin-top:14px">
+          <label>Monto a pagar (S/) <span class="req">*</span></label>
+          <input class="input" type="number" step="0.01" min="0.01"
+                 [(ngModel)]="pagoTcForm.monto" name="ptc_monto" />
+          <div class="muted" style="font-size:11px;margin-top:3px">
+            Puedes registrar un pago parcial. Saldo pendiente: S/ {{ (tcAPagar?.Saldo ?? tcAPagar?.Costo) | number:'1.2-2' }}
+          </div>
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label>Banco / Cuenta de salida <span class="req">*</span></label>
+          <select class="select" [(ngModel)]="pagoTcForm.cuentaBancariaId" name="ptc_cuenta">
+            <option [ngValue]="null">— Selecciona cuenta —</option>
+            @for (cb of cuentasBancarias(); track cb.Id) {
+              <option [ngValue]="cb.Id">{{ cb.Banco }} · {{ cb.Alias }} ({{ cb.Moneda }})</option>
+            }
+          </select>
+        </div>
+        <div class="form-grid-2" style="margin-top:12px">
+          <div class="form-row">
+            <label>N° de operación</label>
+            <input class="input" [(ngModel)]="pagoTcForm.referencia" name="ptc_ref" placeholder="Ej. OP-4471820" />
+          </div>
+          <div class="form-row">
+            <label>Fecha de pago</label>
+            <input class="input" type="date" [(ngModel)]="pagoTcForm.fechaPago" name="ptc_fecha" />
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="modalPagoTc.set(false)">Cancelar</button>
+        <button class="btn primary" (click)="confirmarPagoTc()">✓ Confirmar pago</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal Pagar equipo (banco/cuenta) ═══ -->
+@if (modalPagoEq()) {
+  <div class="modal-backdrop" (click)="modalPagoEq.set(false)">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:440px">
+      <div class="modal-header">
+        <h2>Pagar · {{ eqAPagar?.Recurso }}</h2>
+        <button class="icon-btn" (click)="modalPagoEq.set(false)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="cert-resumen">
+          <div class="cr-codigo">{{ eqAPagar?.Codigo }} · {{ eqAPagar?.Periodo }}</div>
+          <div class="cr-desc muted" style="font-size:12px">{{ eqAPagar?.Concepto }}</div>
+          <div class="cr-monto">S/ {{ eqAPagar?.Monto | number:'1.2-2' }}</div>
+        </div>
+        <div class="form-row" style="margin-top:14px">
+          <label>Banco / Cuenta de salida <span class="req">*</span></label>
+          <select class="select" [(ngModel)]="pagoEqForm.cuentaBancariaId" name="peq_cuenta">
+            <option [ngValue]="null">— Selecciona cuenta —</option>
+            @for (cb of cuentasBancarias(); track cb.Id) {
+              <option [ngValue]="cb.Id">{{ cb.Banco }} · {{ cb.Alias }} ({{ cb.Moneda }})</option>
+            }
+          </select>
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label>N° de operación / Referencia</label>
+          <input class="input" [(ngModel)]="pagoEqForm.referencia" name="peq_ref" placeholder="Ej. OP-1182930" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="modalPagoEq.set(false)">Cancelar</button>
+        <button class="btn primary" (click)="confirmarPagoEq()">✓ Confirmar pago</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal Cobros de factura ═══ -->
+@if (modalCobros()) {
+  <div class="modal-backdrop" (click)="modalCobros.set(false)">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:560px">
+      <div class="modal-header">
+        <h2>Cobros · {{ facturaCobros?.Codigo }}</h2>
+        <button class="icon-btn" (click)="modalCobros.set(false)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        @if (!cobrosFactura().length) {
+          <p class="muted" style="text-align:center;padding:20px">Sin cobros registrados para esta factura.</p>
+        } @else {
+          <table class="table">
+            <thead><tr><th>Fecha</th><th style="text-align:right">Monto</th><th>Cuenta de ingreso</th><th>Referencia</th><th></th></tr></thead>
+            <tbody>
+              @for (cb of cobrosFactura(); track cb.Id) {
+                <tr>
+                  <td class="muted" style="font-size:12px">{{ cb.FechaPago | date:'dd MMM yyyy' }}</td>
+                  <td class="num mono strong">S/ {{ cb.Monto | number:'1.2-2' }}</td>
+                  <td>
+                    @if (cb.CuentaBancaria) {
+                      <div style="font-size:12px">{{ cb.CuentaBancaria }}</div>
+                      <div class="muted mono" style="font-size:10px">{{ cb.NumeroCuenta }}</div>
+                    } @else { <span class="muted">—</span> }
+                  </td>
+                  <td class="mono muted" style="font-size:11px">{{ cb.Referencia || '—' }}</td>
+                  <td>
+                    <div style="display:flex;gap:4px">
+                      <button class="icon-btn" title="Editar" (click)="editarCobro(cb)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                      <button class="icon-btn danger" title="Eliminar" (click)="eliminarCobro(cb)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="modalCobros.set(false)">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal Editar cobro ═══ -->
+@if (modalEditCobro()) {
+  <div class="modal-backdrop" (click)="modalEditCobro.set(false)">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:420px">
+      <div class="modal-header">
+        <h2>Editar cobro</h2>
+        <button class="icon-btn" (click)="modalEditCobro.set(false)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid-2">
+          <div class="form-row">
+            <label>Monto (S/) <span class="req">*</span></label>
+            <input class="input" type="number" step="0.01" [(ngModel)]="editCobroForm.monto" name="ec_monto" />
+          </div>
+          <div class="form-row">
+            <label>Fecha</label>
+            <input class="input" type="date" [(ngModel)]="editCobroForm.fechaPago" name="ec_fecha" />
+          </div>
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label>Banco / Cuenta de ingreso</label>
+          <select class="select" [(ngModel)]="editCobroForm.cuentaBancariaId" name="ec_cuenta">
+            <option [ngValue]="null">— Selecciona cuenta —</option>
+            @for (cb of cuentasBancarias(); track cb.Id) {
+              <option [ngValue]="cb.Id">{{ cb.Banco }} · {{ cb.Alias }} ({{ cb.Moneda }})</option>
+            }
+          </select>
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label>Referencia</label>
+          <input class="input" [(ngModel)]="editCobroForm.referencia" name="ec_ref" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="modalEditCobro.set(false)">Cancelar</button>
+        <button class="btn primary" (click)="guardarEditCobro()">✓ Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal Pagos de un tercerizado ═══ -->
+@if (modalPagosTc()) {
+  <div class="modal-backdrop" (click)="modalPagosTc.set(false)">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:560px">
+      <div class="modal-header">
+        <h2>Pagos · {{ tcPagosDe?.Proveedor }}</h2>
+        <button class="icon-btn" (click)="modalPagosTc.set(false)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="cert-resumen" style="margin-bottom:12px">
+          <div class="cr-desc muted" style="font-size:12px">{{ tcPagosDe?.Servicio }}</div>
+          <div style="display:flex;gap:16px;margin-top:4px;font-size:12.5px">
+            <span>Total: <strong class="mono">S/ {{ tcPagosDe?.Costo | number:'1.2-2' }}</strong></span>
+            <span>Pagado: <strong class="mono" style="color:var(--success)">S/ {{ tcPagosDe?.TotalPagado | number:'1.2-2' }}</strong></span>
+            <span>Saldo: <strong class="mono" style="color:var(--danger)">S/ {{ tcPagosDe?.Saldo | number:'1.2-2' }}</strong></span>
+          </div>
+        </div>
+        @if (!pagosTcList().length) {
+          <p class="muted" style="text-align:center;padding:16px">Sin pagos registrados.</p>
+        } @else {
+          <table class="table">
+            <thead><tr><th>Fecha</th><th style="text-align:right">Monto</th><th>Cuenta de salida</th><th>Referencia</th><th></th></tr></thead>
+            <tbody>
+              @for (pg of pagosTcList(); track pg.Id) {
+                <tr>
+                  <td class="muted" style="font-size:12px">{{ pg.FechaPago | date:'dd MMM yyyy' }}</td>
+                  <td class="num mono strong">S/ {{ pg.Monto | number:'1.2-2' }}</td>
+                  <td>
+                    @if (pg.CuentaBancaria) {
+                      <div style="font-size:12px">{{ pg.CuentaBancaria }}</div>
+                      <div class="muted mono" style="font-size:10px">{{ pg.NumeroCuenta }}</div>
+                    } @else { <span class="muted">—</span> }
+                  </td>
+                  <td class="mono muted" style="font-size:11px">{{ pg.Referencia || '—' }}</td>
+                  <td>
+                    <button class="icon-btn danger" title="Eliminar pago" (click)="eliminarPagoTc(pg)">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="modalPagosTc.set(false)">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}

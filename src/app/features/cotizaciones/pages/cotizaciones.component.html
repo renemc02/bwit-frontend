@@ -1,0 +1,317 @@
+<!-- ═══════════════════════════════ TOPBAR ═════════════════════════════ -->
+<bwit-topbar title="Cotizaciones">
+  <!-- Filtro estado -->
+  <div class="chip-group">
+    @for (e of estadosFiltro; track e.value) {
+      <button class="chip" [class.active]="filtroEstado() === e.value"
+              (click)="setEstado(e.value)">{{ e.label }}</button>
+    }
+  </div>
+  <!-- Búsqueda -->
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px">
+      <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+    </svg>
+    <input type="text" placeholder="Buscar por cliente, ID, título…" (input)="buscar($event)" />
+  </div>
+  <!-- Empuja lo siguiente a la derecha -->
+  <div class="toolbar-spacer"></div>
+  <!-- Vista -->
+  <div class="view-toggle">
+    <button class="vbtn" [class.active]="vista() === 'tabla'" (click)="vista.set('tabla')">Tabla</button>
+    <button class="vbtn" [class.active]="vista() === 'kanban'" (click)="vista.set('kanban')">Kanban</button>
+  </div>
+  <button class="btn primary" (click)="abrirModal()">+ Nueva cotización</button>
+</bwit-topbar>
+
+<!-- ════════════════════════════════ BODY ══════════════════════════════ -->
+<div class="page-body">
+
+  @if (loading()) {
+    <ui-loading label="Cargando cotizaciones…" />
+  } @else if (!items().length) {
+    <ui-empty title="Sin cotizaciones" message="Crea tu primera cotización con el botón de arriba." />
+  } @else if (vista() === 'tabla') {
+
+    <!-- ── VISTA TABLA ── -->
+    <div class="card">
+      <table class="table cot-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Cliente / Título</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+            <th style="text-align:right">Monto</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of items(); track item.Id) {
+            <tr (click)="verDetalle(item)" style="cursor:pointer">
+              <td class="id">{{ item.Codigo }}</td>
+              <td>
+                <div class="strong" style="font-size:13px">{{ item.Cliente }}</div>
+                <div class="muted" style="font-size:12px;margin-top:2px">{{ item.Titulo }}</div>
+              </td>
+              <td>
+                <span class="badge" [class]="item.Estado | badge">
+                  <span class="dot"></span>{{ item.Estado }}
+                </span>
+              </td>
+              <td class="muted">{{ item.FechaEmision | date:'dd MMM yyyy' }}</td>
+              <td class="num mono" style="font-weight:600">S/ {{ item.Total | number:'1.2-2' }}</td>
+              <td style="color:var(--text-faint);text-align:right">›</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+  } @else {
+
+    <!-- ── VISTA KANBAN ── -->
+    <div class="cot-kanban">
+      @for (col of kanbanCols(); track col.estado) {
+        <div class="kcol">
+          <div class="kcol-head">
+            <span class="dot" [class]="col.estado | badge" style="width:8px;height:8px;border-radius:50%;display:inline-block"></span>
+            {{ col.label }}
+            <span class="count">{{ col.items.length }}</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--text-muted)">
+              S/ {{ col.total | number:'1.0-0' }}
+            </span>
+          </div>
+          <div class="kcol-body">
+            @for (item of col.items; track item.Id) {
+              <div class="kcard" (click)="verDetalle(item)">
+                <div class="kcard-id">{{ item.Codigo }}</div>
+                <div class="kcard-titulo">{{ item.Titulo }}</div>
+                <div class="kcard-cliente">{{ item.Cliente }}</div>
+                <div class="kcard-footer">
+                  <span class="muted" style="font-size:11px">{{ item.FechaEmision | date:'dd/MM/yyyy' }}</span>
+                  <span class="mono" style="font-weight:600;font-size:12px">S/ {{ item.Total | number:'1.0-0' }}</span>
+                </div>
+              </div>
+            }
+            @if (!col.items.length) {
+              <div style="padding:20px;text-align:center;color:var(--text-faint);font-size:12px">Sin cotizaciones</div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>
+
+<!-- ════════════════════════════ MODAL NUEVA ═══════════════════════════ -->
+@if (modalAbierto()) {
+  <div class="modal-backdrop" (click)="cerrarModal()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+
+      <!-- Header -->
+      <div class="modal-header">
+        <h2>Nueva cotización</h2>
+        <button class="icon-btn" (click)="cerrarModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body">
+
+        <!-- Fila 1: Cliente + Tipo -->
+        <div class="form-grid-2">
+          <div class="form-row">
+            <label>Cliente <span class="req">*</span></label>
+            <div class="form-hint muted" style="font-size:11px;margin-bottom:4px">¿A quién se factura?</div>
+            <select class="select" [(ngModel)]="form.clienteId" name="clienteId" (ngModelChange)="onClienteChange()">
+              <option value="">— Selecciona cliente —</option>
+              @for (c of clientes(); track c.Id) {
+                <option [value]="c.Id">{{ c.RazonSocial }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Tipo <span class="req">*</span></label>
+            <select class="select" [(ngModel)]="form.tipo" name="tipo">
+              <option value="General">General</option>
+              <option value="Recurrente mensual">Recurrente mensual</option>
+              <option value="Por avances">Por avances</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Cliente final (opcional, si el servicio se presta a otro) -->
+        <div class="form-row" style="margin-top:10px">
+          <label>Cliente final <span class="muted" style="font-size:11px;font-weight:400">(opcional — si el servicio es para otra empresa)</span></label>
+          <select class="select" [(ngModel)]="form.clienteFacturacionId" name="clienteFacturacionId">
+            <option [ngValue]="null">— Mismo cliente —</option>
+            @for (c of clientes(); track c.Id) {
+              <option [ngValue]="c.Id">{{ c.RazonSocial }}</option>
+            }
+          </select>
+          @if (form.clienteFacturacionId) {
+            <div class="muted" style="font-size:11px;margin-top:4px">
+              📋 Factura a <strong>{{ nombreCliente(form.clienteId) }}</strong> ·
+              Servicio para <strong>{{ nombreCliente(form.clienteFacturacionId) }}</strong>
+            </div>
+          }
+        </div>
+
+        <!-- Título -->
+        <div class="form-row" style="margin-top:14px">
+          <label>Título / Descripción <span class="req">*</span></label>
+          <input class="input" type="text" [(ngModel)]="form.titulo" name="titulo"
+                 placeholder="Ej. Billing AWS multi-cuenta - Interbank" />
+        </div>
+
+        <!-- Tipo de servicio -->
+        <div class="form-row" style="margin-top:14px">
+          <label>Tipo de servicio <span class="req">*</span></label>
+          <select class="select" [(ngModel)]="form.servicioId" name="servicioId">
+            <option [ngValue]="null">— Selecciona servicio —</option>
+            @for (s of servicios(); track s.Id) {
+              <option [ngValue]="s.Id">{{ s.Nombre }}@if (s.Categoria) {  · {{ s.Categoria }} }</option>
+            }
+          </select>
+        </div>
+
+        <!-- Contacto del cliente -->
+        <div class="form-row" style="margin-top:14px">
+          <label>Contacto del cliente</label>
+          <select class="select" [(ngModel)]="form.contactoId" name="contactoId" (ngModelChange)="onContactoChange()">
+            <option [ngValue]="null">— Selecciona contacto —</option>
+            @for (ct of contactos(); track ct.Id) {
+              <option [ngValue]="ct.Id">{{ ct.Nombre }} · {{ ct.Cargo }}@if (ct.Telefono) { · {{ ct.Telefono }} }</option>
+            }
+          </select>
+          @if (contactoEmail()) {
+            <div class="contacto-email">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+              {{ contactoEmail() }}
+            </div>
+          }
+        </div>
+
+        <!-- Responsables de seguimiento -->
+        <div class="form-row" style="margin-top:14px">
+          <label>Responsables de seguimiento</label>
+          <select class="select" [(ngModel)]="responsableTmp" name="responsableTmp" (ngModelChange)="agregarResponsable()">
+            <option [ngValue]="null">+ Agregar responsable…</option>
+            @for (p of personal(); track p.Id) {
+              <option [ngValue]="p.Id">{{ p.Nombre }}@if (p.Rol) {  ({{ p.Rol }}) }</option>
+            }
+          </select>
+          @if (responsables().length) {
+            <div class="resp-chips">
+              @for (r of responsables(); track r.id) {
+                <span class="resp-chip">{{ r.nombre }}<button (click)="quitarResponsable(r.id)">×</button></span>
+              }
+            </div>
+          }
+          <div class="form-hint">Asigna 1 o más personas que harán seguimiento hasta que la propuesta sea aceptada o rechazada.</div>
+        </div>
+
+        <!-- Fila 2: Fecha + Validez + Moneda -->
+        <div class="form-grid-3" style="margin-top:14px">
+          <div class="form-row">
+            <label>Fecha de emisión</label>
+            <input class="input" type="date" [(ngModel)]="form.fechaEmision" name="fechaEmision" />
+          </div>
+          <div class="form-row">
+            <label>Validez (días)</label>
+            <input class="input" type="number" [(ngModel)]="form.validezDias" name="validezDias" min="1" />
+          </div>
+          <div class="form-row">
+            <label>Moneda</label>
+            <select class="select" [(ngModel)]="form.moneda" name="moneda">
+              <option value="PEN">S/ Soles</option>
+              <option value="USD">$ Dólares</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Items -->
+        <div class="items-section" style="margin-top:20px">
+          <div class="items-header">
+            <span style="font-size:13px;font-weight:600">Items</span>
+            <button class="btn sm secondary" (click)="agregarItem()">+ Agregar ítem</button>
+          </div>
+
+          <div class="items-table-wrap">
+            <table class="items-table">
+              <thead>
+                <tr>
+                  <th>Descripción</th>
+                  <th style="width:70px">Cant.</th>
+                  <th style="width:110px">P. Unitario</th>
+                  <th style="width:90px">Subtotal</th>
+                  <th style="width:32px"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of formItems(); track $index) {
+                  <tr>
+                    <td>
+                      <input class="input-cell" type="text" [(ngModel)]="item.descripcion"
+                             [name]="'desc_' + $index" placeholder="Descripción del servicio" />
+                    </td>
+                    <td>
+                      <input class="input-cell text-right" type="number" [(ngModel)]="item.cantidad"
+                             [name]="'cant_' + $index" min="1" (ngModelChange)="recalcular()" />
+                    </td>
+                    <td>
+                      <input class="input-cell text-right" type="number" [(ngModel)]="item.precioUnitario"
+                             [name]="'precio_' + $index" min="0" (ngModelChange)="recalcular()" />
+                    </td>
+                    <td class="text-right mono" style="font-size:12.5px;padding-right:8px">
+                      S/ {{ (item.cantidad * item.precioUnitario) | number:'1.2-2' }}
+                    </td>
+                    <td>
+                      <button class="btn-remove" (click)="quitarItem($index)" title="Quitar">×</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Totales -->
+          <div class="totales">
+            <div class="tot-row"><span>Subtotal</span><span class="mono">S/ {{ subtotal() | number:'1.2-2' }}</span></div>
+            <div class="tot-row"><span>IGV 18%</span><span class="mono">S/ {{ igvMonto() | number:'1.2-2' }}</span></div>
+            <div class="tot-row tot-total"><span>Total</span><span class="mono">S/ {{ total() | number:'1.2-2' }}</span></div>
+          </div>
+        </div>
+
+        <!-- Notas -->
+        <div class="form-row" style="margin-top:14px">
+          <label>Condiciones comerciales / Notas</label>
+          <textarea class="input" rows="2" [(ngModel)]="form.notas" name="notas"
+                    placeholder="Condiciones de pago, alcance, etc."></textarea>
+        </div>
+
+        @if (formError()) {
+          <div class="error-msg" style="margin-top:12px">{{ formError() }}</div>
+        }
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="cerrarModal()">Cancelar</button>
+        <button class="btn secondary" (click)="guardar('Borrador')" [disabled]="guardando()">
+          @if (guardando()) { <span class="spinner-sm"></span> }
+          Guardar borrador
+        </button>
+        <button class="btn primary" (click)="guardar('Enviada')" [disabled]="guardando()">
+          @if (guardando()) { <span class="spinner-sm"></span> }
+          Crear y enviar
+        </button>
+      </div>
+
+    </div>
+  </div>
+}

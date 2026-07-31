@@ -1,0 +1,40 @@
+<bwit-topbar title="Configuración" />
+
+<div class="page-body" style="max-width:720px">
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head"><h3>Apariencia</h3></div>
+    <div class="card-pad">
+      <div class="form-row">
+        <label>Tema de la interfaz</label>
+        <div class="chip-group" style="width:fit-content;margin-top:4px">
+          <button class="chip" [class.active]="!theme.isDark()" (click)="theme.setDark(false)">☀ Claro</button>
+          <button class="chip" [class.active]="theme.isDark()"  (click)="theme.setDark(true)"> ☾ Oscuro</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-head"><h3>Sesión actual</h3></div>
+    <div class="card-pad">
+      <div class="detail-meta-row" style="flex-direction:column;gap:12px">
+        <div class="item"><div class="lbl">Usuario</div><div class="val">{{ auth.nombre() }}</div></div>
+        <div class="item"><div class="lbl">Correo</div><div class="val">{{ auth.email() }}</div></div>
+        <div class="item"><div class="lbl">Rol</div><div class="val">{{ auth.rol() }}</div></div>
+        <div class="item"><div class="lbl">Empresa</div><div class="val">{{ auth.empresaNombre() }}</div></div>
+      </div>
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid var(--border)">
+        <button class="btn danger" (click)="auth.logout()">Cerrar sesión</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3>Acerca de</h3></div>
+    <div class="card-pad" style="font-size:13px;color:var(--text-muted)">
+      {{ appName }} Service Ops · versión {{ version }} · © {{ year }}
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,15 @@
+# Angular
+/.angular/cache
+/dist
+/node_modules
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

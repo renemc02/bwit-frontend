@@ -1,0 +1,21 @@
+<router-outlet />
+
+    <!-- Drawer global de Configuración -->
+    <bwit-config-drawer />
+
+    <!-- Confirmación global -->
+    <bwit-confirm />
+
+    <!-- Toast Container -->
+    <div class="toast-container">
+      @for (n of notify.items(); track n.id) {
+        <div class="toast toast--{{ n.type }}" (click)="notify.dismiss(n.id)">
+          <span class="toast__icon" [innerHTML]="toastIcon(n.type) | safeHtml"></span>
+          <div class="toast__body">
+            <div class="toast__title">{{ n.title }}</div>
+            @if (n.message) { <div class="toast__msg">{{ n.message }}</div> }
+          </div>
+          <button class="toast__close" (click)="$event.stopPropagation(); notify.dismiss(n.id)">✕</button>
+        </div>
+      }
+    </div>

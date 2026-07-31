@@ -1,0 +1,152 @@
+<div class="maestro-head">
+  <div>
+    <h2>Usuarios</h2>
+    <p class="muted">Usuarios con acceso al sistema</p>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span class="muted" style="font-size:12px">{{ items().length }} registros</span>
+    <button class="btn primary" (click)="nuevo()">+ Nuevo usuario</button>
+  </div>
+</div>
+
+<div class="card">
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Nombre</th><th>Email</th><th>Rol</th>
+        <th>Último acceso</th><th style="text-align:center">Estado</th><th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody>
+      @if (loading()) {
+        <tr><td colspan="6" class="muted" style="text-align:center;padding:32px">Cargando…</td></tr>
+      } @else if (!items().length) {
+        <tr><td colspan="6" class="muted" style="text-align:center;padding:32px">Sin usuarios registrados.</td></tr>
+      }
+      @for (u of items(); track u.Id) {
+        <tr>
+          <td class="strong">{{ u.Nombre }}</td>
+          <td class="muted">{{ u.Email }}</td>
+          <td><span class="badge" style="font-size:11px">{{ u.RolNombre || rolNombre(u.RolId) }}</span></td>
+          <td class="muted" style="font-size:12px">{{ u.UltimoAcceso ? (u.UltimoAcceso | date:'dd MMM yyyy HH:mm') : 'Nunca' }}</td>
+          <td style="text-align:center">
+            @if (u.Activo) {
+              <span class="badge success" style="font-size:11px">● Activo</span>
+            } @else {
+              <span class="badge muted" style="font-size:11px">● Inactivo</span>
+            }
+          </td>
+          <td>
+            <div style="display:flex;gap:6px">
+              <button class="icon-btn" title="Editar" (click)="editar(u)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              </button>
+              <button class="icon-btn danger" title="Desactivar" (click)="eliminar(u)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>
+
+<!-- ═══ Modal ═══ -->
+@if (modal()) {
+  <div class="modal-backdrop" (click)="cerrar()">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:460px">
+      <div class="modal-header">
+        <h2>{{ editId() ? 'Editar usuario' : 'Nuevo usuario' }}</h2>
+        <button class="icon-btn" (click)="cerrar()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label>Nombre <span class="req">*</span></label>
+          <input class="input" [(ngModel)]="form.Nombre" name="u_nombre" placeholder="Nombre completo" />
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label>Email <span class="req">*</span></label>
+          <input class="input" type="email" [(ngModel)]="form.Email" name="u_email" placeholder="usuario@empresa.pe" />
+        </div>
+        <div class="form-row" style="margin-top:12px">
+          <label>
+            {{ editId() ? 'Nueva contraseña' : 'Contraseña' }}
+            @if (editId()) { <span class="muted" style="font-weight:400;font-size:11px">(dejar vacío para no cambiar)</span> }
+            @else { <span class="req">*</span> }
+          </label>
+          <div style="position:relative">
+            <input class="input" [type]="verPass() ? 'text' : 'password'"
+                   [(ngModel)]="form.Password" name="u_pass"
+                   [placeholder]="editId() ? '••••••••' : 'Mínimo 6 caracteres'"
+                   style="padding-right:40px" autocomplete="new-password" />
+            <button type="button" (click)="verPass.set(!verPass())"
+                    style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-faint);padding:4px">
+              @if (verPass()) {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+              } @else {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              }
+            </button>
+          </div>
+        </div>
+        <div class="form-grid-2" style="margin-top:12px">
+          <div class="form-row">
+            <label>Rol <span class="req">*</span></label>
+            <select class="select" [(ngModel)]="form.RolId" name="u_rol">
+              <option [ngValue]="null">— Selecciona rol —</option>
+              @for (r of roles(); track r.Id) {
+                <option [ngValue]="r.Id">{{ r.Nombre }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Activo</label>
+            <label class="check-inline" style="margin-top:8px">
+              <input type="checkbox" [(ngModel)]="form.Activo" name="u_activo" />
+              <span>Puede iniciar sesión</span>
+            </label>
+          </div>
+        </div>
+        <!-- Empresas a las que tiene acceso -->
+        <div class="form-row" style="margin-top:14px">
+          <label>Empresas con acceso</label>
+          <div class="emp-list">
+            @if (!empresas().length) {
+              <span class="muted" style="font-size:12px">No hay empresas registradas.</span>
+            }
+            @for (e of empresas(); track e.Id) {
+              <label class="emp-item" [class.sel]="form.empresasSel.includes(e.Id)">
+                <input type="checkbox" [checked]="form.empresasSel.includes(e.Id)" (change)="toggleEmpresa(e.Id)" />
+                <span class="emp-nombre">{{ e.RazonSocial }}</span>
+                @if (form.empresasSel.includes(e.Id)) {
+                  <button type="button" class="emp-def" [class.active]="form.empresaDefault === e.Id"
+                          (click)="form.empresaDefault = e.Id" title="Marcar como empresa por defecto">
+                    {{ form.empresaDefault === e.Id ? '★ Default' : '☆ Default' }}
+                  </button>
+                }
+              </label>
+            }
+          </div>
+        </div>
+
+        @if (!editId()) {
+          <label class="check-inline" style="margin-top:12px">
+            <input type="checkbox" [(ngModel)]="form.DebeCambiarPassword" name="u_cambiar" />
+            <span>Obligar a crear nueva contraseña en el primer inicio de sesión</span>
+          </label>
+        }
+
+        @if (error()) { <div class="error-msg" style="margin-top:10px">{{ error() }}</div> }
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="cerrar()">Cancelar</button>
+        <button class="btn primary" (click)="guardar()" [disabled]="guardando()">
+          {{ guardando() ? 'Guardando…' : 'Guardar' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

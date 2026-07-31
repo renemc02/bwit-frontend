@@ -1,0 +1,83 @@
+<div class="m-head">
+  <div>
+    <h2>Empresas / Razones sociales</h2>
+    <p>Maneja una o varias empresas del grupo. Cada cotización, proyecto y factura puede asignarse a una empresa.</p>
+  </div>
+  <div class="m-head-right">
+    <span class="reg-count">{{ items().length }} registros</span>
+    <button class="btn primary" (click)="nuevo()">+ Nueva empresa</button>
+  </div>
+</div>
+
+@if (loading()) {
+  <ui-loading label="Cargando empresas…" />
+} @else if (!items().length) {
+  <ui-empty title="Sin empresas registradas" />
+} @else {
+  <div class="emp-grid">
+    @for (e of items(); track e.Id) {
+      <div class="emp-card">
+        <div class="emp-card-head">
+          <div class="emp-logo" [style.background]="e.ColorHex || 'var(--accent)'">{{ siglas(e.RazonSocial) }}</div>
+          <div class="emp-titulo">
+            <div class="emp-nombre">{{ e.NombreComercial || e.RazonSocial }}</div>
+            <div class="emp-razon">{{ e.RazonSocial }}</div>
+          </div>
+          <button class="icon-btn" (click)="editar(e)" title="Editar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z"/></svg>
+          </button>
+        </div>
+
+        <div class="emp-badges">
+          @if (e.EsPrincipal) { <span class="badge info">Principal</span> }
+          <span class="badge" [class]="e.Activa ? 'success' : 'neutral'">
+            <span class="dot"></span>{{ e.Activa ? 'Activa' : 'Inactiva' }}
+          </span>
+        </div>
+
+        <div class="emp-data">
+          <div class="d-row"><span>RUC</span><span class="mono">{{ e.Ruc }}</span></div>
+          <div class="d-row"><span>Moneda</span><span>{{ e.Moneda }}</span></div>
+          <div class="d-row"><span>Rep. legal</span><span>{{ e.RepLegal || '—' }}</span></div>
+          @if (e.Direccion) { <div class="d-row dir">{{ e.Direccion }}</div> }
+        </div>
+      </div>
+    }
+  </div>
+}
+
+<!-- Modal upsert -->
+@if (modal()) {
+  <div class="modal-backdrop" (click)="cerrar()">
+    <div class="modal-box sm" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editId() ? 'Editar empresa' : 'Nueva empresa' }}</h2>
+        <button class="icon-btn" (click)="cerrar()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid-2">
+          <div class="form-row"><label>Código *</label><input class="input" [(ngModel)]="form.Codigo" name="cod" /></div>
+          <div class="form-row"><label>RUC *</label><input class="input" [(ngModel)]="form.Ruc" name="ruc" /></div>
+        </div>
+        <div class="form-row" style="margin-top:12px"><label>Razón social *</label><input class="input" [(ngModel)]="form.RazonSocial" name="rs" /></div>
+        <div class="form-row" style="margin-top:12px"><label>Nombre comercial</label><input class="input" [(ngModel)]="form.NombreComercial" name="nc" /></div>
+        <div class="form-grid-2" style="margin-top:12px">
+          <div class="form-row"><label>Moneda</label>
+            <select class="select" [(ngModel)]="form.Moneda" name="mon"><option value="PEN">PEN</option><option value="USD">USD</option></select>
+          </div>
+          <div class="form-row"><label>Rep. legal</label><input class="input" [(ngModel)]="form.RepLegal" name="rl" /></div>
+        </div>
+        <div class="form-row" style="margin-top:12px"><label>Dirección</label><input class="input" [(ngModel)]="form.Direccion" name="dir" /></div>
+        <div class="form-grid-2" style="margin-top:12px">
+          <label class="check"><input type="checkbox" [(ngModel)]="form.EsPrincipal" name="pri" /> Es principal</label>
+          <label class="check"><input type="checkbox" [(ngModel)]="form.Activa" name="act" /> Activa</label>
+        </div>
+        @if (error()) { <div class="error-msg" style="margin-top:12px">{{ error() }}</div> }
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="cerrar()">Cancelar</button>
+        <button class="btn primary" (click)="guardar()" [disabled]="guardando()">Guardar</button>
+      </div>
+    </div>
+  </div>
+}

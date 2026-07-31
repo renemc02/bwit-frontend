@@ -1,0 +1,46 @@
+<!-- ═══ Banner superior ═══ -->
+<header class="topbar">
+
+  <!-- Left: Breadcrumb + Title -->
+  <div class="topbar-left">
+    <button class="hamburger-btn" (click)="layout.toggleMobile()" title="Menú">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    @if (crumb()) {
+      <nav class="breadcrumb">
+        <a [routerLink]="crumbRoute()">{{ crumb() }}</a>
+        <span class="sep">›</span>
+      </nav>
+    }
+    <h1 class="page-title">{{ title() }}</h1>
+  </div>
+
+  <!-- Right: Empresa switcher + iconos -->
+  <div class="topbar-right">
+    <bwit-empresa-switcher />
+
+    <button class="tb-icon-btn" (click)="theme.toggle()"
+            [title]="theme.isDark() ? 'Modo claro' : 'Modo oscuro'">
+      <span [innerHTML]="(theme.isDark() ? sunIcon : moonIcon) | safeHtml"></span>
+    </button>
+
+    <button class="tb-icon-btn" (click)="abrirConfig()" title="Configuración">
+      <span [innerHTML]="settingsIcon | safeHtml"></span>
+    </button>
+
+    <button class="tb-icon-btn notif-btn" title="Notificaciones">
+      <span [innerHTML]="bellIcon | safeHtml"></span>
+      @if (notifCount() > 0) {
+        <span class="notif-badge">{{ notifCount() }}</span>
+      }
+    </button>
+  </div>
+
+</header>
+
+<!-- ═══ Barra de filtros (debajo del banner) ═══ -->
+<div class="toolbar-wrap" [class.toolbar--empty]="empty()">
+  <div class="toolbar" #toolbar>
+    <ng-content />
+  </div>
+</div>

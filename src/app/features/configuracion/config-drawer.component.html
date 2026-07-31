@@ -1,0 +1,50 @@
+@if (panel.abierto()) {
+  <div class="cfg-backdrop" (click)="panel.cerrar()"></div>
+
+  <div class="cfg-drawer">
+
+    <!-- Sidebar de navegación -->
+    <aside class="cfg-nav">
+      <div class="cfg-brand">
+        <div class="cfg-brand-mark">b</div>
+        <div>
+          <div class="cfg-brand-name">Configuración</div>
+          <div class="cfg-brand-sub">Catálogos del sistema</div>
+        </div>
+      </div>
+
+      @for (group of grupos; track group) {
+        <div class="cfg-group">{{ group }}</div>
+        @for (item of navPorGrupo(group); track item.id) {
+          <button class="cfg-nav-item" [class.active]="panel.seccion() === item.id"
+                  (click)="panel.ir(item.id)">
+            <span class="cfg-icon" [innerHTML]="ICONS[item.id] | safeHtml"></span>
+            {{ item.label }}
+          </button>
+        }
+      }
+    </aside>
+
+    <!-- Panel de contenido -->
+    <section class="cfg-content">
+      <div class="cfg-content-head">
+        <span class="cfg-icon-lg" [innerHTML]="ICONS[panel.seccion()] | safeHtml"></span>
+        <h1>{{ tituloSeccion() }}</h1>
+        <button class="icon-btn cfg-close" (click)="panel.cerrar()">
+          <span [innerHTML]="ICONS['close'] | safeHtml"></span>
+        </button>
+      </div>
+
+      <div class="cfg-content-body">
+        @switch (panel.seccion()) {
+          @case ('empresas') { <bwit-cfg-empresas /> }
+          @case ('usuarios') { <bwit-cfg-usuarios /> }
+          @case ('roles') { <bwit-cfg-roles /> }
+          @default {
+            <bwit-maestro-tabla [cfg]="configActual()" />
+          }
+        }
+      </div>
+    </section>
+  </div>
+}

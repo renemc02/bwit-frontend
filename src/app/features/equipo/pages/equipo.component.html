@@ -1,0 +1,37 @@
+<bwit-topbar title="Equipo">
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" placeholder="Buscar recurso…" (input)="buscar($event)" />
+  </div>
+  <div class="toolbar-spacer"></div>
+  <button class="btn primary">+ Nuevo recurso</button>
+</bwit-topbar>
+
+<div class="page-body">
+  <div class="card">
+    @if (loading()) { <ui-loading /> }
+    @else if (!items().length) { <ui-empty title="Sin recursos en el equipo" /> }
+    @else {
+      <table class="table">
+        <thead><tr><th>Código</th><th>Nombre</th><th>Rol</th><th>Contrato</th><th style="text-align:right">Tarifa/hr</th><th style="text-align:center">Proyectos</th><th style="text-align:center">Dedicación</th></tr></thead>
+        <tbody>
+          @for (item of items(); track item.Id) {
+            <tr>
+              <td class="id">{{ item.Codigo }}</td>
+              <td class="strong">{{ item.Nombre }}</td>
+              <td class="muted">{{ item.RolFuncional }}</td>
+              <td><span class="badge neutral">{{ item.TipoContrato }}</span></td>
+              <td class="num mono">S/ {{ item.Tarifa | number:'1.0-0' }}</td>
+              <td style="text-align:center">{{ item.ProyectosActivos }}</td>
+              <td style="text-align:center">
+                @if (item.DedicacionTotal > 0) {
+                  <span [class]="'badge ' + (item.DedicacionTotal > 100 ? 'danger' : 'success')">{{ item.DedicacionTotal }}%</span>
+                } @else { <span class="muted">—</span> }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>

@@ -1,0 +1,35 @@
+<bwit-topbar title="Facturación">
+  <div class="chip-group">
+    @for (e of estados; track e.v) {
+      <button class="chip" [class.active]="filtro() === e.v" (click)="setFiltro(e.v)">{{ e.l }}</button>
+    }
+  </div>
+  <div class="toolbar-spacer"></div>
+  <button class="btn primary">+ Nueva factura</button>
+</bwit-topbar>
+
+<div class="page-body">
+  <div class="card">
+    @if (loading()) { <ui-loading /> }
+    @else if (!items().length) { <ui-empty title="Sin facturas" /> }
+    @else {
+      <table class="table">
+        <thead><tr><th>N° Factura</th><th>Cliente</th><th>Proyecto</th><th>Emisión</th><th>Vencimiento</th><th style="text-align:right">Total</th><th style="text-align:right">Saldo</th><th>Estado</th></tr></thead>
+        <tbody>
+          @for (item of items(); track item.Id) {
+            <tr>
+              <td class="id">{{ item.Codigo }}</td>
+              <td class="strong">{{ item.Cliente }}</td>
+              <td class="id">{{ item.ProyectoCodigo }}</td>
+              <td class="muted">{{ item.FechaEmision   | date:'dd/MM/yyyy' }}</td>
+              <td [style.color]="item.DiasVencido > 0 ? 'var(--danger)' : 'var(--text-muted)'">{{ item.FechaVencimiento | date:'dd/MM/yyyy' }}</td>
+              <td class="num mono">S/ {{ item.Total | number:'1.0-0' }}</td>
+              <td class="num mono" [style.color]="item.Saldo > 0 ? 'var(--warning)' : 'inherit'">S/ {{ item.Saldo | number:'1.0-0' }}</td>
+              <td><span class="badge" [class]="item.Estado | badge"><span class="dot"></span>{{ item.Estado }}</span></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>

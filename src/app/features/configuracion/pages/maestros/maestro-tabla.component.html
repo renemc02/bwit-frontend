@@ -1,0 +1,112 @@
+<div class="m-head">
+  <div>
+    <h2>{{ cfg().titulo }}</h2>
+    <p>{{ cfg().subtitulo }}</p>
+  </div>
+  <div class="m-head-right">
+    <span class="reg-count">{{ items().length }} registros</span>
+    <button class="btn primary" (click)="nuevo()">{{ cfg().nuevoLabel }}</button>
+  </div>
+</div>
+
+<div class="card">
+  @if (loading()) {
+    <ui-loading label="Cargando…" />
+  } @else if (!items().length) {
+    <ui-empty title="Sin registros" />
+  } @else {
+    <table class="table">
+      <thead>
+        <tr>
+          @for (c of cfg().cols; track c.key) {
+            <th [style.text-align]="c.align || 'left'">{{ c.label }}</th>
+          }
+          <th style="width:80px;text-align:right">Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (item of items(); track item.Id) {
+          <tr>
+            @for (c of cfg().cols; track c.key) {
+              <td [style.text-align]="c.align || 'left'"
+                  [class.mono]="c.tipo==='mono' || c.tipo==='money'">
+                @switch (c.tipo) {
+                  @case ('money') { S/ {{ item[c.key] | number:'1.2-2' }} }
+                  @case ('date')  { {{ item[c.key] | date:'dd/MM/yyyy' }} }
+                  @case ('bool')  {
+                    <span class="badge" [class]="item[c.key] ? 'success' : 'neutral'">
+                      <span class="dot"></span>{{ item[c.key] ? 'Activo' : 'Inactivo' }}
+                    </span>
+                  }
+                  @case ('badge') { <span class="badge neutral">{{ item[c.key] || '—' }}</span> }
+                  @default        { {{ item[c.key] ?? '—' }} }
+                }
+              </td>
+            }
+            <td style="text-align:right">
+              <button class="icon-btn" (click)="editar(item)" title="Editar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 013 3L12 15l-4 1 1-4z"/></svg>
+              </button>
+              <button class="icon-btn danger" (click)="eliminar(item)" title="Eliminar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</div>
+
+<!-- Modal upsert -->
+@if (modal()) {
+  <div class="modal-backdrop" (click)="cerrar()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editId() ? 'Editar' : 'Nuevo' }} — {{ cfg().titulo }}</h2>
+        <button class="icon-btn" (click)="cerrar()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="fields-grid">
+          @for (f of cfg().fields; track f.key) {
+            <div class="form-row" [style.grid-column]="f.col === 2 ? 'span 2' : 'span 1'">
+              <label>{{ f.label }} @if (f.required) { <span class="req">*</span> }</label>
+              @switch (f.tipo) {
+                @case ('select') {
+                  <select class="select" [(ngModel)]="form[f.key]" [name]="f.key">
+                    @for (o of f.opciones; track o) { <option [value]="o">{{ o }}</option> }
+                  </select>
+                }
+                @case ('select-remote') {
+                  <select class="select" [(ngModel)]="form[f.key]" [name]="f.key">
+                    <option [ngValue]="null">— Selecciona —</option>
+                    @for (o of opcionesRemotas()[f.key] ?? []; track o.value) {
+                      <option [ngValue]="o.value">{{ o.label }}</option>
+                    }
+                  </select>
+                }
+                @case ('check') {
+                  <label class="check"><input type="checkbox" [(ngModel)]="form[f.key]" [name]="f.key" /> Sí</label>
+                }
+                @case ('number') {
+                  <input class="input" type="number" [(ngModel)]="form[f.key]" [name]="f.key" />
+                }
+                @case ('textarea') {
+                  <textarea class="input" rows="2" [(ngModel)]="form[f.key]" [name]="f.key"></textarea>
+                }
+                @default {
+                  <input class="input" type="text" [(ngModel)]="form[f.key]" [name]="f.key" />
+                }
+              }
+            </div>
+          }
+        </div>
+        @if (error()) { <div class="error-msg" style="margin-top:12px">{{ error() }}</div> }
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="cerrar()">Cancelar</button>
+        <button class="btn primary" (click)="guardar()" [disabled]="guardando()">Guardar</button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,18 @@
+.m-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; gap:16px; }
+    .m-head h2 { font-size:18px; font-weight:600; margin:0 0 4px; }
+    .m-head p  { font-size:13px; color:var(--text-muted); }
+    .m-head-right { display:flex; align-items:center; gap:14px; flex:0 0 auto; }
+    .reg-count { font-size:12px; color:var(--text-faint); }
+    .icon-btn.danger:hover { color:var(--danger); background:var(--danger-soft); }
+    .icon-btn svg { width:15px; height:15px; }
+
+    .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:1100; display:flex; align-items:center; justify-content:center; padding:20px; }
+    .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); width:100%; max-width:560px; max-height:90vh; display:flex; flex-direction:column; box-shadow:var(--shadow-lg); }
+    .modal-header { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border); }
+    .modal-header h2 { font-size:15px; font-weight:600; margin:0; }
+    .modal-body { padding:18px 20px; overflow-y:auto; }
+    .modal-footer { display:flex; gap:8px; justify-content:flex-end; padding:14px 20px; border-top:1px solid var(--border); }
+    .fields-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .req { color:var(--danger); }
+    .check { display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; }
+    .error-msg { background:var(--danger-soft); color:var(--danger); border-radius:var(--radius-sm); padding:9px 12px; font-size:13px; }

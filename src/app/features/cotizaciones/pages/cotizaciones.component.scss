@@ -1,0 +1,65 @@
+/* ── Tabla cotizaciones ──────────────────────────────────── */
+    .cot-table tbody tr:hover { background: var(--surface-2); }
+
+    /* ── Vista toggle ────────────────────────────────────────── */
+
+    /* ── Kanban cotizaciones ─────────────────────────────────── */
+    .cot-kanban { display: flex; gap: 14px; align-items: flex-start; overflow-x: auto; padding-bottom: 16px; }
+    .kcol { flex: 0 0 250px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; }
+    .kcol-head { display: flex; align-items: center; gap: 6px; padding: 10px 12px; font-size: 12.5px; font-weight: 600; border-bottom: 1px solid var(--border); }
+    .kcol-head .count { background: var(--border-strong); color: var(--text-muted); border-radius: 10px; padding: 1px 7px; font-size: 11px; }
+    .kcol-body { padding: 8px; display: flex; flex-direction: column; gap: 6px; min-height: 100px; }
+    .kcard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; cursor: pointer; transition: box-shadow .12s; }
+    .kcard:hover { box-shadow: var(--shadow-md); }
+    .kcard-id     { font-family: var(--font-mono); font-size: 11px; color: var(--text-faint); margin-bottom: 4px; }
+    .kcard-titulo { font-size: 12.5px; font-weight: 500; margin-bottom: 3px; }
+    .kcard-cliente{ font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+    .kcard-footer { display: flex; justify-content: space-between; align-items: center; }
+
+    /* ── Modal ───────────────────────────────────────────────── */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); width: 100%; max-width: 680px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: var(--shadow-lg); animation: modalIn .2s cubic-bezier(.34,1.56,.64,1); }
+    @keyframes modalIn { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:scale(1); } }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 18px 22px 14px; border-bottom: 1px solid var(--border); }
+    .modal-header h2 { font-size: 16px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+    .modal-body { padding: 20px 22px; overflow-y: auto; flex: 1; }
+    .modal-footer { display: flex; gap: 8px; justify-content: flex-end; padding: 14px 22px; border-top: 1px solid var(--border); }
+
+    /* ── Form ────────────────────────────────────────────────── */
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .req { color: var(--danger); }
+
+    /* ── Items table ─────────────────────────────────────────── */
+    .items-section { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+    .items-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--surface-2); border-bottom: 1px solid var(--border); }
+    .items-table-wrap { overflow-x: auto; }
+    .items-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .items-table thead th { padding: 7px 10px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--text-faint); background: var(--surface-2); border-bottom: 1px solid var(--border); }
+    .items-table tbody tr { border-bottom: 1px solid var(--border); }
+    .items-table tbody tr:last-child { border-bottom: none; }
+    .items-table td { padding: 6px 8px; }
+    .input-cell { width: 100%; border: 1px solid transparent; border-radius: 4px; padding: 5px 7px; font-size: 13px; background: transparent; color: var(--text); font-family: var(--font-sans); transition: border-color .12s; }
+    .input-cell:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+    .input-cell.text-right { text-align: right; }
+    .text-right { text-align: right; }
+    .btn-remove { background: transparent; border: none; color: var(--text-faint); font-size: 16px; cursor: pointer; padding: 2px 6px; border-radius: 4px; line-height: 1; transition: all .1s; }
+    .btn-remove:hover { background: var(--danger-soft); color: var(--danger); }
+
+    /* ── Totales ─────────────────────────────────────────────── */
+    .totales { padding: 10px 14px; background: var(--surface-2); border-top: 1px solid var(--border); display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .tot-row { display: flex; gap: 32px; font-size: 13px; color: var(--text-muted); }
+    .tot-row span:last-child { min-width: 100px; text-align: right; }
+    .tot-total { font-size: 14px; font-weight: 700; color: var(--text); padding-top: 6px; border-top: 1px solid var(--border); margin-top: 2px; }
+
+    /* ── Misc ────────────────────────────────────────────────── */
+    .error-msg { display: flex; align-items: center; gap: 6px; background: var(--danger-soft); color: var(--danger); border-radius: var(--radius-sm); padding: 9px 12px; font-size: 13px; }
+    .spinner-sm { width: 12px; height: 12px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    textarea.input { resize: vertical; min-height: 60px; }
+    .contacto-email { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-muted); margin-top: 5px; }
+    .form-hint { font-size: 11.5px; color: var(--text-faint); margin-top: 5px; }
+    .resp-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .resp-chip { display: inline-flex; align-items: center; gap: 5px; background: var(--accent-soft); color: var(--accent-strong); padding: 3px 6px 3px 10px; border-radius: 14px; font-size: 12px; font-weight: 500; }
+    .resp-chip button { background: transparent; border: none; color: var(--accent-strong); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; border-radius: 50%; }
+    .resp-chip button:hover { background: rgba(0,0,0,.1); }

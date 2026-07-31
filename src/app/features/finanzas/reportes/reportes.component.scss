@@ -1,0 +1,73 @@
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+.metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; }
+.m-label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); font-weight: 600; }
+.m-value { font-size: 22px; font-weight: 700; margin-top: 6px; letter-spacing: -.02em; }
+.m-value .cur { font-size: 13px; color: var(--text-muted); margin-right: 3px; font-weight: 600; }
+.m-value.danger  { color: var(--danger); }
+.m-value.success { color: var(--success); }
+.m-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+.bi-row { display: flex; gap: 16px; margin-bottom: 16px; align-items: stretch; }
+.bi-card { padding: 16px 18px; }
+.bi-title { font-size: 14px; font-weight: 700; margin-bottom: 14px; }
+
+/* Barras verticales */
+.bars-chart { display: flex; align-items: flex-end; gap: 8px; height: 170px; padding: 0 4px; }
+.bar-group { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.bars { display: flex; gap: 3px; align-items: flex-end; height: 145px; }
+.bar { width: 14px; border-radius: 3px 3px 0 0; min-height: 2px; transition: height .3s ease; }
+.bar.cobro { background: #16a34a; }
+.bar.pago  { background: #dc2626; }
+.bar-label { font-size: 10px; color: var(--text-faint); white-space: nowrap; }
+
+/* Leyendas */
+.legend { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+.legend.vert { flex-direction: column; gap: 6px; }
+.lg { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.lg i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+/* Donas */
+.dona-wrap { position: relative; width: 160px; margin: 0 auto 12px; }
+.dona-wrap.sm { width: 130px; }
+.dona { width: 100%; height: auto; }
+.dona-center { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+.dc-val { font-size: 14px; font-weight: 700; }
+.dc-lbl { font-size: 10px; color: var(--text-faint); text-transform: uppercase; }
+
+/* Barras horizontales */
+.hbar-chart { display: flex; flex-direction: column; gap: 8px; }
+.hbar-row { display: grid; grid-template-columns: 220px 1fr 110px; gap: 12px; align-items: center; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.hbar-row:hover { background: var(--surface-2); }
+.hbar-name { display: flex; flex-direction: column; overflow: hidden; }
+.hbar-nombre { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hbar-track { height: 14px; background: var(--surface-2); border-radius: 7px; overflow: hidden; }
+.hbar-fill { height: 100%; border-radius: 7px; transition: width .3s ease; }
+.hbar-val { font-size: 12.5px; font-weight: 700; text-align: right; }
+
+/* Mini progreso en tabla */
+.mini-prog { width: 60px; height: 4px; background: var(--surface-2); border-radius: 4px; overflow: hidden; display: inline-block; margin-right: 6px; vertical-align: middle; }
+.mini-fill { height: 100%; background: var(--primary); }
+
+@media (max-width: 980px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .bi-row { flex-direction: column; }
+  .hbar-row { grid-template-columns: 140px 1fr 90px; }
+}
+
+/* ── Barra de filtros BI ── */
+.bi-filters { padding: 14px 18px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px; }
+.bif-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { padding: 5px 14px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface); font-size: 12.5px; cursor: pointer; color: var(--text-muted); font-family: var(--font-sans); transition: all .12s; }
+.chip:hover { border-color: var(--text-faint); }
+.chip.active { background: #2563eb; border-color: #2563eb; color: #fff; font-weight: 600; }
+.bif-custom { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
+.bif-group { display: flex; flex-direction: column; gap: 3px; }
+.bif-group label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--text-faint); font-weight: 600; }
+.select.sm, .input.sm { padding: 6px 10px; font-size: 13px; }
+.bif-sep { width: 1px; background: var(--border); align-self: stretch; margin: 0 4px; }
+.bif-rango { font-size: 12px; }
+
+@media (max-width: 768px) {
+  .bif-custom { gap: 8px; }
+  .bif-sep { display: none; }
+}

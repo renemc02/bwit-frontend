@@ -1,0 +1,224 @@
+<bwit-topbar title="Reportes" />
+
+<div class="page-body">
+
+  <!-- ═══ Barra de filtros BI ═══ -->
+  <div class="card bi-filters">
+    <div class="bif-presets">
+      <button class="chip" [class.active]="presetActivo()==='mes'"        (click)="aplicarPreset('mes')">Este mes</button>
+      <button class="chip" [class.active]="presetActivo()==='mesPasado'"  (click)="aplicarPreset('mesPasado')">Mes pasado</button>
+      <button class="chip" [class.active]="presetActivo()==='trimestre'"  (click)="aplicarPreset('trimestre')">Trimestre</button>
+      <button class="chip" [class.active]="presetActivo()==='anio'"       (click)="aplicarPreset('anio')">Este año</button>
+      <button class="chip" [class.active]="presetActivo()==='anioPasado'" (click)="aplicarPreset('anioPasado')">Año pasado</button>
+      <button class="chip" [class.active]="presetActivo()==='12m'"        (click)="aplicarPreset('12m')">Últimos 12 meses</button>
+      <button class="chip" [class.active]="presetActivo()==='todo'"       (click)="aplicarPreset('todo')">Todo</button>
+    </div>
+    <div class="bif-custom">
+      <div class="bif-group">
+        <label>Año</label>
+        <select class="select sm" [(ngModel)]="anioSel" (ngModelChange)="aplicarAnioMes()" name="f_anio">
+          <option [ngValue]="null">—</option>
+          @for (a of anios; track a) { <option [ngValue]="a">{{ a }}</option> }
+        </select>
+      </div>
+      <div class="bif-group">
+        <label>Mes</label>
+        <select class="select sm" [(ngModel)]="mesSel" (ngModelChange)="aplicarAnioMes()" name="f_mes" [disabled]="!anioSel">
+          <option [ngValue]="null">Todos</option>
+          @for (m of meses; track m.v) { <option [ngValue]="m.v">{{ m.n }}</option> }
+        </select>
+      </div>
+      <div class="bif-sep"></div>
+      <div class="bif-group">
+        <label>Desde</label>
+        <input class="input sm" type="date" [(ngModel)]="fechaDesde" name="f_desde" />
+      </div>
+      <div class="bif-group">
+        <label>Hasta</label>
+        <input class="input sm" type="date" [(ngModel)]="fechaHasta" name="f_hasta" />
+      </div>
+      <button class="btn sm primary" style="align-self:flex-end" (click)="aplicarRango()">Aplicar</button>
+    </div>
+    @if (fechaDesde || fechaHasta) {
+      <div class="bif-rango muted">
+        Mostrando: <strong>{{ fechaDesde || 'inicio' }}</strong> → <strong>{{ fechaHasta || 'hoy' }}</strong>
+      </div>
+    }
+  </div>
+
+@if (loading()) {
+  <ui-loading label="Generando reportes…" />
+} @else {
+
+  <!-- ═══ KPIs ═══ -->
+  <div class="kpi-grid">
+    <div class="metric">
+      <div class="m-label">Contratado</div>
+      <div class="m-value"><span class="cur">S/</span>{{ totalContratado() | number:'1.0-0' }}</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Cobrado</div>
+      <div class="m-value success"><span class="cur">S/</span>{{ totalCobrado() | number:'1.0-0' }}</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Costos</div>
+      <div class="m-value danger"><span class="cur">S/</span>{{ totalCostos() | number:'1.0-0' }}</div>
+    </div>
+    <div class="metric">
+      <div class="m-label">Utilidad estimada</div>
+      <div class="m-value" [class.success]="totalUtilidad() >= 0" [class.danger]="totalUtilidad() < 0">
+        <span class="cur">S/</span>{{ totalUtilidad() | number:'1.0-0' }}
+      </div>
+      <div class="m-sub">margen {{ margenPct() }}%</div>
+    </div>
+  </div>
+
+  <!-- ═══ Fila 1: flujo mensual + dona costos ═══ -->
+  <div class="bi-row">
+    <div class="card bi-card" style="flex:2">
+      <div class="bi-title">Flujo mensual · Cobros vs Pagos <span class="muted" style="font-weight:400;font-size:11.5px">(últimos 12 meses)</span></div>
+      <div class="bars-chart">
+        @for (f of flujo(); track f.Mes) {
+          <div class="bar-group">
+            <div class="bars">
+              <div class="bar cobro" [style.height.px]="barH(f.Cobros)" [title]="'Cobros: S/ ' + (f.Cobros | number:'1.2-2')"></div>
+              <div class="bar pago" [style.height.px]="barH(f.Pagos)" [title]="'Pagos: S/ ' + (f.Pagos | number:'1.2-2')"></div>
+            </div>
+            <div class="bar-label">{{ f.MesLabel }}</div>
+          </div>
+        }
+      </div>
+      <div class="legend">
+        <span class="lg"><i style="background:#16a34a"></i> Cobros</span>
+        <span class="lg"><i style="background:#dc2626"></i> Pagos</span>
+      </div>
+    </div>
+
+    <div class="card bi-card" style="flex:1">
+      <div class="bi-title">Costos por tipo</div>
+      @if (donaCostos().length) {
+        <div class="dona-wrap">
+          <svg viewBox="0 0 100 100" class="dona">
+            @for (seg of donaCostos(); track seg.label) {
+              <circle cx="50" cy="50" r="42" fill="none" [attr.stroke]="seg.color" stroke-width="14"
+                      [attr.stroke-dasharray]="seg.dash" [attr.stroke-dashoffset]="seg.offset"
+                      transform="rotate(-90 50 50)"/>
+            }
+          </svg>
+          <div class="dona-center">
+            <div class="dc-val">S/ {{ totalCostos() | number:'1.0-0' }}</div>
+            <div class="dc-lbl">total</div>
+          </div>
+        </div>
+        <div class="legend vert">
+          @for (seg of donaCostos(); track seg.label) {
+            <span class="lg"><i [style.background]="seg.color"></i> {{ seg.label }} · {{ seg.pct }}% <span class="mono muted">S/ {{ seg.valor | number:'1.0-0' }}</span></span>
+          }
+        </div>
+      } @else { <p class="muted" style="text-align:center;padding:24px">Sin datos.</p> }
+    </div>
+  </div>
+
+  <!-- ═══ Fila 2: donas cotizaciones + facturas ═══ -->
+  <div class="bi-row">
+    <div class="card bi-card" style="flex:1">
+      <div class="bi-title">Cotizaciones por estado <span class="muted" style="font-weight:400;font-size:11.5px">(por monto)</span></div>
+      @if (donaCotiz().length) {
+        <div class="dona-wrap sm">
+          <svg viewBox="0 0 100 100" class="dona">
+            @for (seg of donaCotiz(); track seg.label) {
+              <circle cx="50" cy="50" r="42" fill="none" [attr.stroke]="seg.color" stroke-width="14"
+                      [attr.stroke-dasharray]="seg.dash" [attr.stroke-dashoffset]="seg.offset"
+                      transform="rotate(-90 50 50)"/>
+            }
+          </svg>
+        </div>
+        <div class="legend vert">
+          @for (seg of donaCotiz(); track seg.label) {
+            <span class="lg"><i [style.background]="seg.color"></i> {{ seg.label }} · {{ seg.pct }}% <span class="mono muted">S/ {{ seg.valor | number:'1.0-0' }}</span></span>
+          }
+        </div>
+      } @else { <p class="muted" style="text-align:center;padding:24px">Sin datos.</p> }
+    </div>
+
+    <div class="card bi-card" style="flex:1">
+      <div class="bi-title">Cobranza · Facturas por estado</div>
+      @if (donaFacturas().length) {
+        <div class="dona-wrap sm">
+          <svg viewBox="0 0 100 100" class="dona">
+            @for (seg of donaFacturas(); track seg.label) {
+              <circle cx="50" cy="50" r="42" fill="none" [attr.stroke]="seg.color" stroke-width="14"
+                      [attr.stroke-dasharray]="seg.dash" [attr.stroke-dashoffset]="seg.offset"
+                      transform="rotate(-90 50 50)"/>
+            }
+          </svg>
+        </div>
+        <div class="legend vert">
+          @for (seg of donaFacturas(); track seg.label) {
+            <span class="lg"><i [style.background]="seg.color"></i> {{ seg.label }} · {{ seg.pct }}% <span class="mono muted">S/ {{ seg.valor | number:'1.0-0' }}</span></span>
+          }
+        </div>
+      } @else { <p class="muted" style="text-align:center;padding:24px">Sin datos.</p> }
+    </div>
+  </div>
+
+  <!-- ═══ Fila 3: utilidad por proyecto ═══ -->
+  <div class="card bi-card">
+    <div class="bi-title">Utilidad por proyecto <span class="muted" style="font-weight:400;font-size:11.5px">(top 8)</span></div>
+    <div class="hbar-chart">
+      @for (p of topProyectos(); track p.Id) {
+        <div class="hbar-row" (click)="irAProyecto(p)" [title]="p.Nombre">
+          <div class="hbar-name">
+            <span class="mono" style="font-size:11px;color:var(--text-faint)">{{ p.Codigo }}</span>
+            <span class="hbar-nombre">{{ p.Nombre }}</span>
+          </div>
+          <div class="hbar-track">
+            <div class="hbar-fill" [style.width.%]="p.barPct"
+                 [style.background]="p.Utilidad >= 0 ? '#16a34a' : '#dc2626'"></div>
+          </div>
+          <div class="hbar-val mono" [style.color]="p.Utilidad >= 0 ? 'var(--success)' : 'var(--danger)'">
+            S/ {{ p.Utilidad | number:'1.0-0' }}
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- ═══ Tabla resumen proyectos ═══ -->
+  <div class="card" style="margin-top:16px">
+    <div class="bi-title" style="padding:16px 18px 0">Detalle por proyecto</div>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Proyecto</th><th>Estado</th><th style="text-align:right">Contrato</th>
+          <th style="text-align:right">Cobrado</th><th style="text-align:right">Costo equipo</th>
+          <th style="text-align:right">Costo terceros</th><th style="text-align:right">Utilidad</th><th>Avance</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (p of proyectos(); track p.Id) {
+          <tr style="cursor:pointer" (click)="irAProyecto(p)">
+            <td>
+              <div class="strong" style="font-size:13px">{{ p.Nombre }}</div>
+              <div class="mono muted" style="font-size:11px">{{ p.Codigo }}</div>
+            </td>
+            <td><span class="badge" style="font-size:11px">{{ p.Estado }}</span></td>
+            <td class="num mono">S/ {{ p.MontoTotal | number:'1.0-0' }}</td>
+            <td class="num mono" style="color:var(--success)">S/ {{ p.Cobrado | number:'1.0-0' }}</td>
+            <td class="num mono">S/ {{ p.CostoEquipo | number:'1.0-0' }}</td>
+            <td class="num mono">S/ {{ p.CostoTerceros | number:'1.0-0' }}</td>
+            <td class="num mono strong" [style.color]="p.Utilidad >= 0 ? 'var(--success)' : 'var(--danger)'">
+              S/ {{ p.Utilidad | number:'1.0-0' }}
+            </td>
+            <td>
+              <div class="mini-prog"><div class="mini-fill" [style.width.%]="p.ProgresoPct"></div></div>
+              <span class="muted" style="font-size:11px">{{ p.ProgresoPct }}%</span>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+}
+</div>

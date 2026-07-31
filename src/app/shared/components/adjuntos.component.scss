@@ -1,0 +1,27 @@
+.adj-count { background: var(--surface-2); color: var(--text-muted); border-radius: 10px; padding: 0 6px; font-size: 11px; font-weight: 600; }
+
+.dropzone {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border: 1.5px dashed var(--border-strong); border-radius: var(--radius);
+  padding: 22px; text-align: center; color: var(--text-faint);
+  cursor: pointer; transition: all .15s;
+}
+.dropzone:hover, .dropzone.over { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.dropzone svg { width: 22px; height: 22px; margin-bottom: 6px; }
+.dz-title { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+.dz-sub { font-size: 11.5px; color: var(--text-faint); margin-top: 2px; }
+
+.adj-error { background: var(--danger-soft); color: var(--danger); border-radius: var(--radius-sm); padding: 8px 11px; font-size: 12.5px; margin-top: 10px; }
+.adj-empty { text-align: center; color: var(--text-faint); font-size: 13px; padding: 16px 0; }
+
+.adj-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.adj-item { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 1px solid var(--border); border-radius: var(--radius); transition: border-color .12s; }
+.adj-item:hover { border-color: var(--border-strong); }
+.adj-icon { width: 34px; height: 34px; border-radius: 6px; background: var(--surface-2); color: var(--text-muted); display: grid; place-items: center; font-size: 9px; font-weight: 800; flex: 0 0 34px; }
+.adj-info { flex: 1; min-width: 0; }
+.adj-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.adj-meta { font-size: 11.5px; color: var(--text-muted); margin-top: 1px; }
+.adj-btn { background: transparent; border: none; color: var(--text-faint); cursor: pointer; padding: 6px; border-radius: var(--radius-sm); display: flex; align-items: center; transition: all .1s; flex: 0 0 auto; }
+.adj-btn:hover { color: var(--text); background: var(--surface-2); }
+.adj-btn.danger:hover { color: var(--danger); }
+.adj-btn svg { width: 15px; height: 15px; }

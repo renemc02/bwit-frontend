@@ -1,0 +1,65 @@
+<aside class="sidebar" [class.collapsed]="collapsed()">
+
+  <!-- Brand -->
+  <div class="brand">
+    <div class="brand-mark">b</div>
+    @if (!collapsed()) {
+      <div>
+        <div class="brand-name">bwit</div>
+        <div class="brand-sub">service ops</div>
+      </div>
+    }
+  </div>
+
+  <!-- Nav -->
+  @for (item of navItems; track item.route) {
+    @if (item.section && !collapsed()) {
+      <div class="nav-section">{{ item.section }}</div>
+    }
+    @if (item.route === '/configuracion') {
+      <button class="nav-item" (click)="abrirConfig()" [title]="collapsed() ? item.label : ''">
+        <span class="icon" [innerHTML]="icon(item.icon) | safeHtml"></span>
+        @if (!collapsed()) { <span class="nav-label">{{ item.label }}</span> }
+      </button>
+    } @else {
+      <a class="nav-item" [routerLink]="item.route" routerLinkActive="active"
+         [title]="collapsed() ? item.label : ''">
+        <span class="icon" [innerHTML]="icon(item.icon) | safeHtml"></span>
+        @if (!collapsed()) {
+          <span class="nav-label">{{ item.label }}</span>
+          @if (item.badge) {
+            <span class="nav-badge">{{ item.badge }}</span>
+          }
+        }
+      </a>
+    }
+  }
+
+  <!-- Spacer -->
+  <div style="flex:1"></div>
+
+  <!-- Toggle collapse -->
+  <div class="sidebar-footer-top">
+    <button class="sidebar-toggle" (click)="toggleCollapse()">
+      <span class="icon" [innerHTML]="(collapsed() ? icon('chevron-right') : icon('chevron-left')) | safeHtml"></span>
+      @if (!collapsed()) { <span>Colapsar</span> }
+    </button>
+  </div>
+
+  <!-- User -->
+  <div class="user">
+    <div class="avatar">{{ auth.initials() }}</div>
+    @if (!collapsed()) {
+      <div class="user-info">
+        <div class="user-name">{{ auth.nombre() }}</div>
+        <div class="user-role">{{ auth.rol() }}</div>
+      </div>
+      <button class="icon-btn" (click)="theme.toggle()" [title]="theme.isDark() ? 'Modo claro' : 'Modo oscuro'">
+        <span [innerHTML]="(theme.isDark() ? icon('sun') : icon('moon')) | safeHtml"></span>
+      </button>
+      <button class="icon-btn" (click)="auth.logout()" title="Cerrar sesión">
+        <span [innerHTML]="icon('log-out') | safeHtml"></span>
+      </button>
+    }
+  </div>
+</aside>

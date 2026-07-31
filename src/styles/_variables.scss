@@ -1,0 +1,80 @@
+// ═══════════════════════════════════════════════════════
+// BWIT Service Ops — Design Tokens
+// Tipografía: DM Sans + DM Mono
+// ═══════════════════════════════════════════════════════
+
+:root {
+  // Spacing
+  --sidebar-w:    220px;
+  --topbar-h:     60px;
+  --gap:          16px;
+  --radius:       8px;
+  --radius-sm:    6px;
+  --radius-lg:    12px;
+
+  // Typography
+  --font-sans:    'DM Sans', system-ui, sans-serif;
+  --font-mono:    'DM Mono', 'Fira Code', monospace;
+}
+
+// ── Light theme ──────────────────────────────────────
+[data-theme="light"] {
+  --bg:            #f5f5f4;
+  --surface:       #ffffff;
+  --surface-2:     #f7f7f6;
+  --surface-3:     #efefed;
+  --border:        #e7e5e2;
+  --border-strong: #d6d3cf;
+
+  --text:          #1c1917;
+  --text-muted:    #78716c;
+  --text-faint:    #a8a29e;
+
+  --accent:        #2563eb;
+  --accent-soft:   #eff6ff;
+  --accent-strong: #1d4ed8;
+
+  --success:       #16a34a;
+  --success-soft:  #f0fdf4;
+  --warning:       #d97706;
+  --warning-soft:  #fffbeb;
+  --danger:        #dc2626;
+  --danger-soft:   #fef2f2;
+  --info:          #0891b2;
+  --info-soft:     #ecfeff;
+
+  --shadow:        0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:     0 4px 12px rgba(0,0,0,.08), 0 2px 4px rgba(0,0,0,.04);
+  --shadow-lg:     0 10px 28px rgba(0,0,0,.10), 0 4px 8px rgba(0,0,0,.04);
+}
+
+// ── Dark theme ───────────────────────────────────────
+[data-theme="dark"] {
+  --bg:            #0f0f0e;
+  --surface:       #1a1917;
+  --surface-2:     #222120;
+  --surface-3:     #2a2927;
+  --border:        #2e2c2a;
+  --border-strong: #3d3b38;
+
+  --text:          #fafaf9;
+  --text-muted:    #a8a29e;
+  --text-faint:    #57534e;
+
+  --accent:        #3b82f6;
+  --accent-soft:   #1e3a5f;
+  --accent-strong: #60a5fa;
+
+  --success:       #22c55e;
+  --success-soft:  #14532d;
+  --warning:       #f59e0b;
+  --warning-soft:  #451a03;
+  --danger:        #ef4444;
+  --danger-soft:   #450a0a;
+  --info:          #22d3ee;
+  --info-soft:     #164e63;
+
+  --shadow:        0 1px 3px rgba(0,0,0,.30), 0 1px 2px rgba(0,0,0,.20);
+  --shadow-md:     0 4px 12px rgba(0,0,0,.40), 0 2px 4px rgba(0,0,0,.20);
+  --shadow-lg:     0 10px 28px rgba(0,0,0,.50), 0 4px 8px rgba(0,0,0,.20);
+}

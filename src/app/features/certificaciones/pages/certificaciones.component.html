@@ -1,0 +1,30 @@
+<bwit-topbar title="Certificaciones">
+  <div class="toolbar-spacer"></div>
+  <button class="btn primary">+ Nueva certificación</button>
+</bwit-topbar>
+
+<div class="page-body">
+  <div class="card">
+    @if (loading()) { <ui-loading /> }
+    @else if (!items().length) { <ui-empty title="Sin certificaciones" /> }
+    @else {
+      <table class="table">
+        <thead><tr><th>Código</th><th>Proyecto</th><th>Cliente</th><th>Periodo</th><th style="text-align:right">Monto</th><th>Estado</th><th>Enviada</th><th>Días</th></tr></thead>
+        <tbody>
+          @for (item of items(); track item.Id) {
+            <tr>
+              <td class="id">{{ item.Codigo }}</td>
+              <td class="id">{{ item.ProyectoCodigo }}</td>
+              <td class="muted">{{ item.Cliente }}</td>
+              <td class="muted">{{ item.Periodo }}</td>
+              <td class="num mono">S/ {{ item.Monto | number:'1.0-0' }}</td>
+              <td><span class="badge" [class]="item.Estado | badge"><span class="dot"></span>{{ item.Estado }}</span></td>
+              <td class="muted">{{ item.FechaEnvio | date:'dd/MM/yyyy' }}</td>
+              <td class="muted" style="text-align:center">{{ item.DiasEnRevision }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>

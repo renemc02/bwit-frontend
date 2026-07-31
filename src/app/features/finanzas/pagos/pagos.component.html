@@ -1,0 +1,332 @@
+<bwit-topbar title="Pagos" />
+
+@if (loading()) {
+  <ui-loading label="Cargando pagos…" />
+} @else {
+<div class="page-body">
+
+  <!-- Tabs principales -->
+  <div class="tabs" style="margin-bottom:16px">
+    <button class="tab" [class.active]="tab()==='terceros'" (click)="setTab('terceros')">
+      Compras a terceros <span class="tab-count">{{ tercerizados().length }}</span>
+    </button>
+    <button class="tab" [class.active]="tab()==='equipo'" (click)="setTab('equipo')">
+      Pagos al equipo <span class="tab-count">{{ pagosEquipo().length }}</span>
+    </button>
+    <button class="tab" [class.active]="tab()==='cobros'" (click)="setTab('cobros')">
+      Cobros <span class="tab-count">{{ cobros().length }}</span>
+    </button>
+  </div>
+
+  <!-- ═══ TAB TERCEROS ═══ -->
+  @if (tab()==='terceros') {
+    <div class="metrics-grid" style="margin-bottom:16px">
+      <div class="metric">
+        <div class="m-label">Total comprometido</div>
+        <div class="m-value"><span class="cur">S/</span>{{ totalTerceros() | number:'1.2-2' }}</div>
+      </div>
+      <div class="metric">
+        <div class="m-label">Pagado</div>
+        <div class="m-value success"><span class="cur">S/</span>{{ pagadoTerceros() | number:'1.2-2' }}</div>
+      </div>
+      <div class="metric">
+        <div class="m-label">Por pagar</div>
+        <div class="m-value danger"><span class="cur">S/</span>{{ saldoTerceros() | number:'1.2-2' }}</div>
+      </div>
+    </div>
+
+    <div class="filter-chips">
+      <button class="chip" [class.active]="filtro()===''" (click)="filtro.set('')">Todos</button>
+      <button class="chip" [class.active]="filtro()==='PorPagar'" (click)="setFiltro('PorPagar')">Por pagar</button>
+      <button class="chip" [class.active]="filtro()==='Parcial'" (click)="setFiltro('Parcial')">Parcial</button>
+      <button class="chip" [class.active]="filtro()==='Pagada'" (click)="setFiltro('Pagada')">Pagadas</button>
+    </div>
+
+    <div class="card">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Proveedor / Servicio</th><th>Proyecto</th><th>Periodo</th>
+            <th style="text-align:right">Costo</th><th style="text-align:right">Pagado</th>
+            <th>Cuenta</th><th>Estado</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (!tercerizadosFiltrados().length) {
+            <tr><td colspan="9" class="muted" style="text-align:center;padding:32px">Sin registros.</td></tr>
+          }
+          @for (t of tercerizadosFiltrados(); track t.Id) {
+            <tr>
+              <td class="mono muted" style="font-size:12px">{{ t.Codigo }}</td>
+              <td>
+                <div class="strong" style="font-size:13px">{{ t.Proveedor }}</div>
+                <div class="muted" style="font-size:11.5px">{{ t.Servicio }}
+                  @if (t.FacturaProveedor) { · Fact. {{ t.FacturaProveedor }} }
+                </div>
+              </td>
+              <td>
+                <a class="mono" style="font-size:12px;color:var(--primary);cursor:pointer"
+                   (click)="irAProyecto(t, 'tercerizados')">{{ t.ProyectoCodigo }}</a>
+              </td>
+              <td class="muted" style="font-size:12px">{{ t.Periodo }}</td>
+              <td class="num mono strong">S/ {{ t.Costo | number:'1.2-2' }}</td>
+              <td class="num mono" [style.color]="(t.TotalPagado ?? 0) > 0 ? 'var(--success)' : 'inherit'">
+                S/ {{ t.TotalPagado | number:'1.2-2' }}
+              </td>
+              <td>
+                @if (t.CuentaBancaria) {
+                  <div style="font-size:11.5px">{{ t.CuentaBancaria }}</div>
+                  @if (t.ReferenciaPago) { <div class="muted mono" style="font-size:10px">{{ t.ReferenciaPago }}</div> }
+                } @else { <span class="muted" style="font-size:11px">—</span> }
+              </td>
+              <td>
+                @if (t.Pagado) {
+                  <span class="badge success" style="font-size:11px">● Pagada</span>
+                } @else if ((t.TotalPagado ?? 0) > 0) {
+                  <span class="badge info" style="font-size:11px">● Parcial · S/ {{ t.Saldo | number:'1.0-0' }}</span>
+                } @else {
+                  <span class="badge warning" style="font-size:11px">● Por pagar</span>
+                }
+              </td>
+              <td>
+                <div style="display:flex;gap:4px">
+                  <button class="btn sm ghost" style="font-size:11px" title="Ver detalle del pago" (click)="verDetalle(t, 'tercero')">👁</button>
+                  <button class="btn sm secondary" style="font-size:11px" (click)="irAProyecto(t, 'tercerizados')">Proyecto →</button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- ═══ TAB EQUIPO ═══ -->
+  @if (tab()==='equipo') {
+    <div class="metrics-grid" style="margin-bottom:16px">
+      <div class="metric">
+        <div class="m-label">Total programado</div>
+        <div class="m-value"><span class="cur">S/</span>{{ totalEquipo() | number:'1.2-2' }}</div>
+      </div>
+      <div class="metric">
+        <div class="m-label">Pagado</div>
+        <div class="m-value success"><span class="cur">S/</span>{{ pagadoEquipo() | number:'1.2-2' }}</div>
+      </div>
+      <div class="metric">
+        <div class="m-label">Pendiente</div>
+        <div class="m-value danger"><span class="cur">S/</span>{{ pendienteEquipo() | number:'1.2-2' }}</div>
+      </div>
+    </div>
+
+    <div class="filter-chips">
+      <button class="chip" [class.active]="filtro()===''" (click)="filtro.set('')">Todos</button>
+      <button class="chip" [class.active]="filtro()==='Programado'" (click)="setFiltro('Programado')">Programados</button>
+      <button class="chip" [class.active]="filtro()==='Pagado'" (click)="setFiltro('Pagado')">Pagados</button>
+    </div>
+
+    <div class="card">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Persona</th><th>Proyecto</th><th>Periodo</th><th>Concepto</th>
+            <th style="text-align:right">Monto</th><th>Cuenta</th><th>Estado</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (!pagosEquipoFiltrados().length) {
+            <tr><td colspan="9" class="muted" style="text-align:center;padding:32px">Sin registros.</td></tr>
+          }
+          @for (pg of pagosEquipoFiltrados(); track pg.Id) {
+            <tr>
+              <td class="mono muted" style="font-size:12px">{{ pg.Codigo }}</td>
+              <td>
+                <div class="strong" style="font-size:13px">{{ pg.Recurso }}</div>
+                <div class="muted" style="font-size:11.5px">{{ pg.RolProyecto }}</div>
+              </td>
+              <td>
+                <a class="mono" style="font-size:12px;color:var(--primary);cursor:pointer"
+                   (click)="irAProyecto(pg, 'equipo')">{{ pg.ProyectoCodigo }}</a>
+              </td>
+              <td class="muted" style="font-size:12px">{{ pg.Periodo }}</td>
+              <td style="font-size:12.5px">{{ pg.Concepto }}</td>
+              <td class="num mono strong">S/ {{ pg.Monto | number:'1.2-2' }}</td>
+              <td>
+                @if (pg.CuentaBancaria) {
+                  <div style="font-size:11.5px">{{ pg.CuentaBancaria }}</div>
+                  @if (pg.ReferenciaPago) { <div class="muted mono" style="font-size:10px">{{ pg.ReferenciaPago }}</div> }
+                } @else { <span class="muted" style="font-size:11px">—</span> }
+              </td>
+              <td>
+                @if (pg.Pagado) {
+                  <span class="badge success" style="font-size:11px">● Pagado {{ pg.FechaPagado | date:'dd-MMM' }}</span>
+                } @else {
+                  <span class="badge warning" style="font-size:11px">● Programado {{ pg.FechaPago | date:'dd-MMM' }}</span>
+                }
+              </td>
+              <td>
+                <div style="display:flex;gap:4px">
+                  <button class="btn sm ghost" style="font-size:11px" title="Ver detalle del pago" (click)="verDetalle(pg, 'equipo')">👁</button>
+                  <button class="btn sm secondary" style="font-size:11px" (click)="irAProyecto(pg, 'equipo')">Proyecto →</button>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <!-- ═══ TAB COBROS ═══ -->
+  @if (tab()==='cobros') {
+    <div class="metrics-grid" style="margin-bottom:16px;grid-template-columns:repeat(2,1fr)">
+      <div class="metric">
+        <div class="m-label">Total cobrado</div>
+        <div class="m-value success"><span class="cur">S/</span>{{ totalCobrado() | number:'1.2-2' }}</div>
+      </div>
+      <div class="metric">
+        <div class="m-label">Cobros registrados</div>
+        <div class="m-value">{{ cobros().length }}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Factura</th><th>Cliente</th><th>Proyecto</th><th>Fecha</th>
+            <th style="text-align:right">Monto</th><th>Cuenta de ingreso</th><th>Referencia</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (!cobros().length) {
+            <tr><td colspan="9" class="muted" style="text-align:center;padding:32px">Sin cobros registrados.</td></tr>
+          }
+          @for (c of cobros(); track c.Id) {
+            <tr>
+              <td class="mono muted" style="font-size:12px">{{ c.Codigo || '—' }}</td>
+              <td>
+                <div class="mono strong" style="font-size:12.5px">{{ c.Factura }}</div>
+                <div class="muted" style="font-size:11px">Total S/ {{ c.FacturaTotal | number:'1.2-2' }} · {{ c.FacturaEstado }}</div>
+              </td>
+              <td style="font-size:12.5px">{{ c.Cliente }}</td>
+              <td>
+                @if (c.ProyectoCodigo) {
+                  <a class="mono" style="font-size:12px;color:var(--primary);cursor:pointer"
+                     (click)="irAProyecto(c, 'facturas')">{{ c.ProyectoCodigo }}</a>
+                } @else { <span class="muted">—</span> }
+              </td>
+              <td class="muted" style="font-size:12px">{{ c.FechaPago | date:'dd MMM yyyy' }}</td>
+              <td class="num mono strong" style="color:var(--success)">S/ {{ c.Monto | number:'1.2-2' }}</td>
+              <td>
+                @if (c.CuentaBancaria) {
+                  <div style="font-size:11.5px">{{ c.CuentaBancaria }}</div>
+                  <div class="muted mono" style="font-size:10px">{{ c.NumeroCuenta }}</div>
+                } @else { <span class="muted" style="font-size:11px">—</span> }
+              </td>
+              <td class="mono muted" style="font-size:11px">{{ c.Referencia || '—' }}</td>
+              <td>
+                <div style="display:flex;gap:4px">
+                  <button class="btn sm ghost" style="font-size:11px" title="Ver detalle" (click)="verDetalle(c, 'cobro')">👁</button>
+                  @if (c.ProyectoId) {
+                    <button class="btn sm secondary" style="font-size:11px" (click)="irAProyecto(c, 'facturas')">Proyecto →</button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+</div>
+}
+
+<!-- ═══ Modal Detalle del pago/cobro ═══ -->
+@if (modalDetalle()) {
+  <div class="modal-backdrop" (click)="modalDetalle.set(false)">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:480px">
+      <div class="modal-header">
+        <h2>
+          @if (detalleTipo==='tercero') { Detalle · Pago a proveedor }
+          @else if (detalleTipo==='equipo') { Detalle · Pago al equipo }
+          @else { Detalle · Cobro de factura }
+        </h2>
+        <button class="icon-btn" (click)="modalDetalle.set(false)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="det-grid">
+          <div class="det-row"><span class="det-lbl">Código</span><span class="det-val mono">{{ detalle?.Codigo || '—' }}</span></div>
+
+          @if (detalleTipo==='tercero') {
+            <div class="det-row"><span class="det-lbl">Proveedor</span><span class="det-val strong">{{ detalle?.Proveedor }}</span></div>
+            <div class="det-row"><span class="det-lbl">Servicio</span><span class="det-val">{{ detalle?.Servicio }}</span></div>
+            <div class="det-row"><span class="det-lbl">Periodo</span><span class="det-val">{{ detalle?.Periodo }}</span></div>
+            @if (detalle?.FacturaProveedor) {
+              <div class="det-row"><span class="det-lbl">Factura proveedor</span><span class="det-val mono">{{ detalle?.FacturaProveedor }}</span></div>
+            }
+            <div class="det-row"><span class="det-lbl">Costo total</span><span class="det-val mono strong">S/ {{ detalle?.Costo | number:'1.2-2' }}</span></div>
+            <div class="det-row"><span class="det-lbl">Pagado</span><span class="det-val mono" style="color:var(--success)">S/ {{ detalle?.TotalPagado | number:'1.2-2' }}</span></div>
+            <div class="det-row"><span class="det-lbl">Saldo</span><span class="det-val mono" style="color:var(--danger)">S/ {{ detalle?.Saldo | number:'1.2-2' }}</span></div>
+          }
+
+          @if (detalleTipo==='equipo') {
+            <div class="det-row"><span class="det-lbl">Persona</span><span class="det-val strong">{{ detalle?.Recurso }}</span></div>
+            <div class="det-row"><span class="det-lbl">Rol</span><span class="det-val">{{ detalle?.RolProyecto }}</span></div>
+            <div class="det-row"><span class="det-lbl">Periodo</span><span class="det-val">{{ detalle?.Periodo }}</span></div>
+            <div class="det-row"><span class="det-lbl">Concepto</span><span class="det-val">{{ detalle?.Concepto }}</span></div>
+            <div class="det-row"><span class="det-lbl">Tipo</span><span class="det-val">{{ detalle?.TipoPago }}</span></div>
+            <div class="det-row"><span class="det-lbl">Monto</span><span class="det-val mono strong">S/ {{ detalle?.Monto | number:'1.2-2' }}</span></div>
+            <div class="det-row"><span class="det-lbl">Fecha programada</span><span class="det-val">{{ detalle?.FechaPago | date:'dd MMM yyyy' }}</span></div>
+            @if (detalle?.Pagado) {
+              <div class="det-row"><span class="det-lbl">Pagado el</span><span class="det-val" style="color:var(--success)">{{ detalle?.FechaPagado | date:'dd MMM yyyy HH:mm' }}</span></div>
+            }
+          }
+
+          @if (detalleTipo==='cobro') {
+            <div class="det-row"><span class="det-lbl">Factura</span><span class="det-val mono strong">{{ detalle?.Factura }}</span></div>
+            <div class="det-row"><span class="det-lbl">Cliente</span><span class="det-val">{{ detalle?.Cliente }}</span></div>
+            <div class="det-row"><span class="det-lbl">Total factura</span><span class="det-val mono">S/ {{ detalle?.FacturaTotal | number:'1.2-2' }}</span></div>
+            <div class="det-row"><span class="det-lbl">Estado factura</span><span class="det-val">{{ detalle?.FacturaEstado }}</span></div>
+            <div class="det-row"><span class="det-lbl">Monto cobrado</span><span class="det-val mono strong" style="color:var(--success)">S/ {{ detalle?.Monto | number:'1.2-2' }}</span></div>
+            <div class="det-row"><span class="det-lbl">Fecha de cobro</span><span class="det-val">{{ detalle?.FechaPago | date:'dd MMM yyyy' }}</span></div>
+            @if (detalle?.MetodoPago) {
+              <div class="det-row"><span class="det-lbl">Método</span><span class="det-val">{{ detalle?.MetodoPago }}</span></div>
+            }
+            @if (detalle?.Notas) {
+              <div class="det-row"><span class="det-lbl">Notas</span><span class="det-val">{{ detalle?.Notas }}</span></div>
+            }
+          }
+
+          <div class="det-row"><span class="det-lbl">Cuenta bancaria</span>
+            <span class="det-val">
+              @if (detalle?.CuentaBancaria) {
+                {{ detalle?.CuentaBancaria }}
+                @if (detalle?.NumeroCuenta) { <span class="mono muted" style="font-size:11px"> · {{ detalle?.NumeroCuenta }}</span> }
+              } @else { — }
+            </span>
+          </div>
+          <div class="det-row"><span class="det-lbl">Referencia / N° operación</span>
+            <span class="det-val mono">{{ detalle?.ReferenciaPago || detalle?.Referencia || '—' }}</span>
+          </div>
+          @if (detalle?.ProyectoCodigo) {
+            <div class="det-row"><span class="det-lbl">Proyecto</span>
+              <span class="det-val">{{ detalle?.ProyectoCodigo }} · {{ detalle?.Proyecto }}</span>
+            </div>
+          }
+          <div class="det-row"><span class="det-lbl">Registrado</span><span class="det-val muted">{{ detalle?.FechaCreacion | date:'dd MMM yyyy HH:mm' }}</span></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="modalDetalle.set(false)">Cerrar</button>
+        @if (detalle?.ProyectoId) {
+          <button class="btn primary" (click)="modalDetalle.set(false); irAProyecto(detalle, detalleTipo==='tercero' ? 'tercerizados' : detalleTipo==='equipo' ? 'equipo' : 'facturas')">
+            Ir al proyecto →
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+}

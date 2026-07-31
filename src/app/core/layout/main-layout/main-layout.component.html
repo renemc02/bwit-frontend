@@ -1,0 +1,9 @@
+<div class="app-shell" [class.collapsed]="sidebar.collapsed()" [class.mobile-open]="layout.mobileOpen()">
+  <bwit-sidebar #sidebar />
+  @if (layout.mobileOpen()) {
+    <div class="sidebar-backdrop" (click)="layout.closeMobile()"></div>
+  }
+  <main class="main-content">
+    <router-outlet />
+  </main>
+</div>

@@ -1,0 +1,79 @@
+<div class="maestro-head">
+  <div>
+    <h2>Roles y permisos</h2>
+    <p class="muted">Define a qué módulos puede entrar cada rol, y si puede editar o solo ver</p>
+  </div>
+</div>
+
+<div class="roles-layout">
+  <!-- Lista de roles -->
+  <div class="roles-list card">
+    @if (loading()) {
+      <div class="muted" style="padding:20px;text-align:center">Cargando…</div>
+    }
+    @for (r of roles(); track r.Id) {
+      <button class="rol-item" [class.active]="rolSel()?.Id === r.Id" (click)="seleccionar(r)">
+        <div class="rol-nombre">{{ r.Nombre }}</div>
+        @if (r.Descripcion) { <div class="rol-desc">{{ r.Descripcion }}</div> }
+      </button>
+    }
+  </div>
+
+  <!-- Matriz de permisos -->
+  <div class="perms-panel card">
+    @if (!rolSel()) {
+      <div class="perms-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:40px;height:40px;opacity:.3"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+        <p class="muted">Selecciona un rol para configurar sus permisos</p>
+      </div>
+    } @else {
+      <div class="perms-head">
+        <div>
+          <h3>{{ rolSel()?.Nombre }}</h3>
+          <p class="muted" style="font-size:12px">Marca los módulos y el nivel de acceso</p>
+        </div>
+        <div class="perms-quick">
+          <button class="btn sm secondary" (click)="marcarTodo('ninguno')">Ninguno</button>
+          <button class="btn sm secondary" (click)="marcarTodo('ver')">Solo ver todo</button>
+          <button class="btn sm secondary" (click)="marcarTodo('editar')">Editar todo</button>
+        </div>
+      </div>
+
+      <table class="perms-table">
+        <thead>
+          <tr>
+            <th>Módulo / Formulario</th>
+            <th style="text-align:center;width:90px">Ver</th>
+            <th style="text-align:center;width:90px">Editar</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of permisos(); track p.modulo) {
+            <tr>
+              <td class="pm-label">{{ p.label }}</td>
+              <td style="text-align:center">
+                <label class="switch">
+                  <input type="checkbox" [checked]="p.ver" (change)="toggleVer(p)" />
+                  <span class="slider"></span>
+                </label>
+              </td>
+              <td style="text-align:center">
+                <label class="switch">
+                  <input type="checkbox" [checked]="p.editar" (change)="toggleEditar(p)" />
+                  <span class="slider edit"></span>
+                </label>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <div class="perms-footer">
+        @if (guardado()) { <span class="saved-msg">✓ Permisos guardados</span> }
+        <button class="btn primary" (click)="guardar()" [disabled]="guardando()">
+          {{ guardando() ? 'Guardando…' : 'Guardar permisos' }}
+        </button>
+      </div>
+    }
+  </div>
+</div>

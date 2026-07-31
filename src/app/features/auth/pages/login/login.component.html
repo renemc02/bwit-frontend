@@ -1,0 +1,51 @@
+<div class="login-bg">
+  <div class="bg-grid"></div>
+
+  <div class="login-card">
+    <!-- Brand -->
+    <div class="login-brand">
+      <div class="brand-mark">B</div>
+      <div>
+        <div class="brand-name">BWIT Service Ops</div>
+        <div class="brand-sub">Plataforma de gestión de servicios</div>
+      </div>
+    </div>
+
+    <!-- Form -->
+    <div class="login-form">
+      <div class="form-row">
+        <label>Correo electrónico</label>
+        <input class="input" type="email" [(ngModel)]="email" name="email"
+               placeholder="usuario@bwit.pe" required autocomplete="email" />
+      </div>
+
+      <div class="form-row" style="margin-top:14px; position:relative">
+        <label>Contraseña</label>
+        <input class="input" [type]="showPwd() ? 'text' : 'password'"
+               [(ngModel)]="password" name="password" required autocomplete="current-password" />
+        <button type="button" class="pwd-toggle" (click)="togglePwd()">
+          {{ showPwd() ? 'Ocultar' : 'Mostrar' }}
+        </button>
+      </div>
+
+      @if (error()) {
+        <div class="error-msg">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               style="width:14px;height:14px;flex:0 0 14px">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          {{ error() }}
+        </div>
+      }
+
+      <button class="btn primary login-btn" (click)="submit()" [disabled]="loading()">
+        @if (loading()) { <span class="spinner"></span> Ingresando… }
+        @else { Ingresar }
+      </button>
+    </div>
+
+    <div class="login-footer">BWIT Service Ops · v1.0 · © 2026</div>
+  </div>
+</div>
