@@ -317,6 +317,7 @@ export class ProyectoDetailComponent implements OnInit {
       periodoServicio: c.Periodo ?? '', fechaEmision: hoy,
       condicionPago: 'Crédito 30 días', moneda: this.p()?.Moneda ?? 'PEN',
       enviarSunat: true, enviarEmail: true, aplicaDetraccion: false,
+      portalSunat: false, serieManual: '', numeroManual: null,
     };
     this.facItems.set([{
       Descripcion: c.Descripcion || `Certificación ${c.Codigo} · ${c.Periodo}`,
@@ -365,6 +366,10 @@ export class ProyectoDetailComponent implements OnInit {
     const proyecto = this.p();
     if (!c || !proyecto) return;
     if (!this.facForm.fechaEmision) { this.facError.set('Selecciona la fecha de emisión.'); return; }
+    if (this.facForm.portalSunat) {
+      if (!(this.facForm.serieManual || '').trim()) { this.facError.set('Ingresa la serie (ej. F001) de la factura emitida por SUNAT.'); return; }
+      if (!this.facForm.numeroManual) { this.facError.set('Ingresa el número correlativo de la factura emitida por SUNAT.'); return; }
+    }
     if (!this.facItems().length || this.facItems().every((i: any) => !i.Descripcion.trim())) {
       this.facError.set('Agrega al menos un item con descripción.'); return;
     }
@@ -378,9 +383,12 @@ export class ProyectoDetailComponent implements OnInit {
       TipoComprobante: this.facForm.tipoComprobante,
       FechaEmision: this.facForm.fechaEmision,
       DiasVencimiento: dias,
+      CondicionPago: this.facForm.condicionPago || null,
       PeriodoServicio: this.facForm.periodoServicio || null,
       Moneda: this.facForm.moneda,
       Estado: modo === 'borrador' ? 'Borrador' : 'Pendiente',
+      SerieManual: this.facForm.portalSunat ? (this.facForm.serieManual || '').trim() : null,
+      NumeroManual: this.facForm.portalSunat && this.facForm.numeroManual ? Number(this.facForm.numeroManual) : null,
       Items: this.facItems()
         .filter((i: any) => i.Descripcion.trim())
         .map((i: any) => ({

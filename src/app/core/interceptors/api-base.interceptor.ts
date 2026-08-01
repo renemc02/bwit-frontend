@@ -8,9 +8,12 @@ import { environment } from '../../../environments/environment';
  */
 export const apiBaseInterceptor: HttpInterceptorFn = (req, next) => {
   const base = environment.apiBaseUrl;
+
+  // Solo reescribir rutas relativas que empiezan con /api y si hay base configurada
   if (base && req.url.startsWith('/api')) {
     const url = base.replace(/\/$/, '') + req.url;
     return next(req.clone({ url }));
   }
+
   return next(req);
 };

@@ -756,10 +756,21 @@
           </div>
           <div class="form-row">
             <label>Serie / Correlativo</label>
-            <div style="display:flex;gap:8px">
-              <input class="input" style="width:80px" [(ngModel)]="facForm.serie" name="fac_serie" readonly />
-              <input class="input" style="flex:1" [(ngModel)]="facForm.correlativo" name="fac_corr" readonly />
-            </div>
+            @if (facForm.portalSunat) {
+              <div style="display:flex;gap:8px">
+                <input class="input" style="width:90px" [(ngModel)]="facForm.serieManual" name="fac_serie_m" placeholder="F001" maxlength="4" />
+                <input class="input" style="flex:1" type="number" [(ngModel)]="facForm.numeroManual" name="fac_num_m" placeholder="N° correlativo SUNAT" />
+              </div>
+            } @else {
+              <div style="display:flex;gap:8px">
+                <input class="input" style="width:80px" [(ngModel)]="facForm.serie" name="fac_serie" readonly />
+                <input class="input" style="flex:1" [(ngModel)]="facForm.correlativo" name="fac_corr" readonly />
+              </div>
+            }
+            <label class="fac-portal-check">
+              <input type="checkbox" [(ngModel)]="facForm.portalSunat" name="fac_portal" />
+              <span>Factura emitida por el portal de SUNAT (digitar serie y número)</span>
+            </label>
           </div>
         </div>
 
@@ -785,6 +796,8 @@
               <option value="Crédito 30 días">Crédito 30 días</option>
               <option value="Crédito 45 días">Crédito 45 días</option>
               <option value="Crédito 60 días">Crédito 60 días</option>
+              <option value="Crédito 90 días">Crédito 90 días</option>
+              <option value="Crédito 120 días">Crédito 120 días</option>
             </select>
           </div>
           <div class="form-row">
