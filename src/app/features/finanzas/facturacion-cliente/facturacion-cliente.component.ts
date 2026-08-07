@@ -20,6 +20,7 @@ export class FacturacionClienteComponent implements OnInit {
   loading = signal(true);
   clientes = signal<any[]>([]);
   detalle = signal<any[]>([]);
+  detalleAgrupado = signal<any[]>([]);
   expandido = signal<number | null>(null);
   detalleCargando = signal(false);
 
@@ -113,14 +114,43 @@ export class FacturacionClienteComponent implements OnInit {
     if (this.expandido() === c.ClienteId) {
       this.expandido.set(null);
       this.detalle.set([]);
+      this.detalleAgrupado.set([]);
       return;
     }
     this.expandido.set(c.ClienteId);
     this.detalleCargando.set(true);
     this.api.get<any>(`/api/finanzas/bi/facturacion-cliente/${c.ClienteId}${this.qs()}`).subscribe({
-      next: (r: any) => { this.detalle.set(r ?? []); this.detalleCargando.set(false); },
-      error: () => { this.detalle.set([]); this.detalleCargando.set(false); }
+      next: (r: any) => {
+        const items = r ?? [];
+        this.detalle.set(items);
+        this.detalleAgrupado.set(this.agruparPorProyecto(items));
+        this.detalleCargando.set(false);
+      },
+      error: () => { this.detalle.set([]); this.detalleAgrupado.set([]); this.detalleCargando.set(false); }
     });
+  }
+
+  private agruparPorProyecto(items: any[]): any[] {
+    const map = new Map<string, any>();
+    for (const f of items) {
+      const key = f.ProyectoCodigo || 'SIN-PRY';
+      if (!map.has(key)) {
+        map.set(key, {
+          ProyectoCodigo: f.ProyectoCodigo,
+          ProyectoNombre: f.ProyectoNombre,
+          facturas: [],
+          totalFacturado: 0,
+          totalCobrado: 0,
+          totalSaldo: 0,
+        });
+      }
+      const g = map.get(key)!;
+      g.facturas.push(f);
+      g.totalFacturado += f.Total || 0;
+      g.totalCobrado += f.Cobrado || 0;
+      g.totalSaldo += f.Saldo || 0;
+    }
+    return Array.from(map.values()).sort((a, b) => b.totalFacturado - a.totalFacturado);
   }
 
   moneda(m: string) { return m === 'USD' ? 'US$' : 'S/'; }
