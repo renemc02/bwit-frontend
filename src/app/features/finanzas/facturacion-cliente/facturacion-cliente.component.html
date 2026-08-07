@@ -1,0 +1,201 @@
+<bwit-topbar title="Facturación por cliente" />
+
+<div class="fc-page">
+
+  <!-- Filtros -->
+  <div class="fc-filters">
+    <div class="fc-presets">
+      @for (p of [['mes','Este mes'],['trimestre','Trimestre'],['anio','Este año'],['12m','Últimos 12m'],['todo','Todo']]; track p[0]) {
+        <button class="preset-btn" [class.active]="presetActivo() === p[0]" (click)="aplicarPreset(p[0])">{{ p[1] }}</button>
+      }
+    </div>
+    <div class="fc-custom">
+      <select class="sel-sm" [(ngModel)]="anioSel" (ngModelChange)="aplicarAnioMes()">
+        @for (a of anios; track a) { <option [ngValue]="a">{{ a }}</option> }
+      </select>
+      <select class="sel-sm" [(ngModel)]="mesSel" (ngModelChange)="aplicarAnioMes()">
+        <option [ngValue]="null">Todos</option>
+        @for (m of meses; track m.v) { <option [ngValue]="m.v">{{ m.n }}</option> }
+      </select>
+    </div>
+    <div class="fc-search">
+      <input class="input-sm" type="text" placeholder="Buscar cliente…" [(ngModel)]="busqueda" />
+    </div>
+  </div>
+
+  @if (loading()) {
+    <ui-loading />
+  } @else {
+
+  <!-- KPIs -->
+  <div class="fc-kpis">
+    <div class="kpi-card">
+      <div class="kpi-label">Facturado PEN</div>
+      <div class="kpi-value">S/ {{ totalPEN() | number:'1.2-2' }}</div>
+    </div>
+    <div class="kpi-card accent">
+      <div class="kpi-label">Facturado USD</div>
+      <div class="kpi-value">US$ {{ totalUSD() | number:'1.2-2' }}</div>
+    </div>
+    <div class="kpi-card success">
+      <div class="kpi-label">Cobrado</div>
+      <div class="kpi-value">S/ {{ totalCobrado() | number:'1.2-2' }}</div>
+      <div class="kpi-sub">{{ pctCobrado() }}% del total</div>
+    </div>
+    <div class="kpi-card warning">
+      <div class="kpi-label">Por cobrar</div>
+      <div class="kpi-value">S/ {{ totalPorCobrar() | number:'1.2-2' }}</div>
+    </div>
+    <div class="kpi-card neutral">
+      <div class="kpi-label">Clientes</div>
+      <div class="kpi-value">{{ clientesFiltrados().length }}</div>
+      <div class="kpi-sub">{{ totalFacturas() }} facturas</div>
+    </div>
+  </div>
+
+  <!-- Tabla principal -->
+  <div class="fc-table-wrap">
+    <table class="fc-table">
+      <thead>
+        <tr>
+          <th style="width:32px"></th>
+          <th>Cliente</th>
+          <th class="num">Facturas</th>
+          <th class="num">Monto facturado</th>
+          <th class="num">Cobrado</th>
+          <th class="num">Por cobrar</th>
+          <th class="num">% Fact.</th>
+          <th class="num">USD</th>
+          <th style="width:140px">Distribución</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (c of clientesFiltrados(); track c.ClienteId; let i = $index) {
+          <tr class="fc-row" [class.expanded]="expandido() === c.ClienteId" (click)="expandir(c)">
+            <td class="fc-chevron">
+              <span [class.open]="expandido() === c.ClienteId">▸</span>
+            </td>
+            <td>
+              <div class="fc-cliente-name">{{ c.Cliente }}</div>
+            </td>
+            <td class="num">{{ c.CantidadFacturas }}</td>
+            <td class="num mono strong">S/ {{ c.MontoFacturadoPEN | number:'1.2-2' }}</td>
+            <td class="num mono fc-cobrado">S/ {{ c.MontoCobrado | number:'1.2-2' }}</td>
+            <td class="num mono" [class.fc-pendiente]="c.MontoPorCobrar > 0">
+              S/ {{ c.MontoPorCobrar | number:'1.2-2' }}
+            </td>
+            <td class="num mono">{{ c.PctFacturacion | number:'1.1-1' }}%</td>
+            <td class="num mono">
+              @if (c.MontoFacturadoUSD > 0) {
+                <span class="fc-usd">$ {{ c.MontoFacturadoUSD | number:'1.2-2' }}</span>
+              } @else {
+                <span class="muted">—</span>
+              }
+            </td>
+            <td>
+              <div class="fc-bar-bg">
+                <div class="fc-bar-fill" [style.width.%]="(c.MontoFacturadoTotal / maxMonto()) * 100"></div>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Detalle expandido -->
+          @if (expandido() === c.ClienteId) {
+            <tr class="fc-detail-row">
+              <td colspan="9">
+                <div class="fc-detail-box">
+                  <div class="fc-detail-header">
+                    <span>Facturas de <strong>{{ c.Cliente }}</strong></span>
+                    <span class="fc-detail-count">{{ detalle().length }} registros</span>
+                  </div>
+                  @if (detalleCargando()) {
+                    <div class="fc-detail-loading">Cargando facturas…</div>
+                  } @else if (detalle().length) {
+                    <table class="fc-detail-table">
+                      <thead>
+                        <tr>
+                          <th>Factura</th>
+                          <th>Proyecto</th>
+                          <th>Periodo</th>
+                          <th>Emisión</th>
+                          <th>Vence</th>
+                          <th>Condición</th>
+                          <th class="num">Subtotal</th>
+                          <th class="num">Descuento</th>
+                          <th class="num">IGV</th>
+                          <th class="num">Total</th>
+                          <th class="num">Cobrado</th>
+                          <th class="num">Saldo</th>
+                          <th>Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (d of detalle(); track d.Id) {
+                          <tr>
+                            <td class="mono" style="font-weight:600;font-size:12px">{{ d.Codigo }}</td>
+                            <td>
+                              <a class="sub-link" [routerLink]="['/proyectos']" style="font-size:11px">{{ d.ProyectoCodigo }}</a>
+                              <div class="muted" style="font-size:10px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ d.ProyectoNombre }}</div>
+                            </td>
+                            <td class="muted" style="font-size:11px">{{ d.PeriodoServicio || '—' }}</td>
+                            <td class="muted" style="font-size:11px">{{ d.FechaEmision | date:'dd/MM/yy' }}</td>
+                            <td style="font-size:11px" [class.fc-vencido]="d.DiasVencido > 0">
+                              {{ d.FechaVencimiento | date:'dd/MM/yy' }}
+                              @if (d.DiasVencido > 0) {
+                                <span class="fc-dias-badge">{{ d.DiasVencido }}d</span>
+                              }
+                            </td>
+                            <td class="muted" style="font-size:10px">{{ d.CondicionPago || '—' }}</td>
+                            <td class="num mono" style="font-size:11px">{{ moneda(d.Moneda) }} {{ d.Subtotal | number:'1.2-2' }}</td>
+                            <td class="num mono" style="font-size:11px">
+                              @if (d.MontoDescuento > 0) {
+                                <span style="color:var(--danger)">-{{ moneda(d.Moneda) }} {{ d.MontoDescuento | number:'1.2-2' }}</span>
+                              } @else { <span class="muted">—</span> }
+                            </td>
+                            <td class="num mono" style="font-size:11px">{{ moneda(d.Moneda) }} {{ d.Igv | number:'1.2-2' }}</td>
+                            <td class="num mono strong" style="font-size:12px">{{ moneda(d.Moneda) }} {{ d.Total | number:'1.2-2' }}</td>
+                            <td class="num mono fc-cobrado" style="font-size:11px">{{ moneda(d.Moneda) }} {{ d.Cobrado | number:'1.2-2' }}</td>
+                            <td class="num mono" style="font-size:11px" [class.fc-pendiente]="d.Saldo > 0" [class.fc-cobrado]="d.Saldo === 0">
+                              {{ moneda(d.Moneda) }} {{ d.Saldo | number:'1.2-2' }}
+                            </td>
+                            <td>
+                              <span class="badge sm" [class]="d.Estado | badge"><span class="dot"></span>{{ d.Estado }}</span>
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  } @else {
+                    <div class="fc-detail-loading">Sin facturas en este periodo.</div>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        }
+      </tbody>
+      <!-- Footer totals -->
+      @if (clientesFiltrados().length) {
+        <tfoot>
+          <tr class="fc-total-row">
+            <td></td>
+            <td class="strong">TOTAL</td>
+            <td class="num strong">{{ totalFacturas() }}</td>
+            <td class="num mono strong">S/ {{ totalPEN() | number:'1.2-2' }}</td>
+            <td class="num mono fc-cobrado strong">S/ {{ totalCobrado() | number:'1.2-2' }}</td>
+            <td class="num mono strong" [class.fc-pendiente]="totalPorCobrar() > 0">S/ {{ totalPorCobrar() | number:'1.2-2' }}</td>
+            <td class="num mono strong">100%</td>
+            <td class="num mono strong">$ {{ totalUSD() | number:'1.2-2' }}</td>
+            <td></td>
+          </tr>
+        </tfoot>
+      }
+    </table>
+  </div>
+
+  @if (!clientesFiltrados().length && !loading()) {
+    <div class="fc-empty">Sin datos de facturación para el periodo seleccionado.</div>
+  }
+
+  }
+</div>

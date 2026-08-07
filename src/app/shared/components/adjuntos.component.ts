@@ -27,19 +27,21 @@ export class AdjuntosComponent {
   error     = signal('');
 
   constructor() {
-    // Recargar si cambia la entidad
-    effect(() => { this.entidadId(); this.entidadTipo(); this.cargar(); });
+    // Recargar si cambia la entidad o categoría
+    effect(() => { this.entidadId(); this.entidadTipo(); this.categoria(); this.cargar(); });
   }
 
   cargar() {
     const id = this.entidadId();
     if (!id) return;
     this.cargando.set(true);
-    const cat = this.categoria();
+    const cat = (this.categoria() || '').trim();
     this.svc.listar(this.entidadTipo(), id).subscribe({
       next: a => {
-        // Si se especificó categoría, mostrar solo los de esa categoría
-        const lista = cat ? (a ?? []).filter(x => x.Categoria === cat) : (a ?? []);
+        // Si se especificó categoría, mostrar solo los de esa categoría (case-insensitive + trim)
+        const lista = cat
+          ? (a ?? []).filter(x => (x.Categoria || '').trim().toLowerCase() === cat.toLowerCase())
+          : (a ?? []);
         this.adjuntos.set(lista);
         this.cargando.set(false);
       },

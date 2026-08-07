@@ -4,6 +4,7 @@ import { TopbarComponent } from '../../../core/layout/topbar/topbar.component';
 import { UiEmptyComponent } from '../../../shared/components/ui-empty.component';
 import { UiLoadingComponent } from '../../../shared/components/ui-loading.component';
 import { BadgePipe } from '../../../shared/pipes/badge.pipe';
+import { MonedaPipe } from '../../../shared/pipes/moneda.pipe';
 import { FacturaService } from '../services/factura.service';
 
 const ESTADOS = [
@@ -14,7 +15,7 @@ const ESTADOS = [
 @Component({
   selector: 'bwit-facturas',
   standalone: true,
-  imports: [DecimalPipe, DatePipe, TopbarComponent, UiEmptyComponent, UiLoadingComponent, BadgePipe],
+  imports: [DecimalPipe, DatePipe, TopbarComponent, UiEmptyComponent, UiLoadingComponent, BadgePipe, MonedaPipe],
   templateUrl: './facturas.component.html'
 })
 export class FacturasComponent implements OnInit {

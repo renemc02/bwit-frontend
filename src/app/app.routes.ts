@@ -28,6 +28,7 @@ export const routes: Routes = [
       { path: 'pagos/:tab',     loadComponent: () => import('./features/finanzas/pagos/pagos.component').then(m => m.PagosComponent),                          title: 'Pagos — BWIT' },
       { path: 'pagos',          redirectTo: 'pagos/terceros' },
       { path: 'reportes',       loadComponent: () => import('./features/finanzas/reportes/reportes.component').then(m => m.ReportesComponent),                  title: 'Reportes — BWIT' },
+      { path: 'facturacion-cliente', loadComponent: () => import('./features/finanzas/facturacion-cliente/facturacion-cliente.component').then(m => m.FacturacionClienteComponent), title: 'Facturación x Cliente — BWIT' },
       { path: 'clientes',       loadComponent: () => import('./features/clientes/pages/clientes.component').then(m => m.ClientesComponent),                 title: 'Clientes — BWIT' },
       { path: 'equipo',         loadComponent: () => import('./features/equipo/pages/equipo.component').then(m => m.EquipoComponent),                       title: 'Equipo — BWIT' },
       { path: 'configuracion',  loadComponent: () => import('./features/configuracion/pages/configuracion.component').then(m => m.ConfiguracionComponent),   title: 'Configuración — BWIT' },

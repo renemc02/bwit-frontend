@@ -40,6 +40,7 @@
           <tr>
             <th>ID</th>
             <th>Cliente / Título</th>
+            <th>Proyecto</th>
             <th>Estado</th>
             <th>Fecha</th>
             <th style="text-align:right">Monto</th>
@@ -55,12 +56,19 @@
                 <div class="muted" style="font-size:12px;margin-top:2px">{{ item.Titulo }}</div>
               </td>
               <td>
+                @if (item.ProyectoCodigo) {
+                  <a class="sub-link" (click)="$event.stopPropagation()" [routerLink]="['/proyectos', item.ProyectoId]">{{ item.ProyectoCodigo }}</a>
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
+              <td>
                 <span class="badge" [class]="item.Estado | badge">
                   <span class="dot"></span>{{ item.Estado }}
                 </span>
               </td>
               <td class="muted">{{ item.FechaEmision | date:'dd MMM yyyy' }}</td>
-              <td class="num mono" style="font-weight:600">S/ {{ item.Total | number:'1.2-2' }}</td>
+              <td class="num mono" style="font-weight:600">{{ item.Moneda | moneda }} {{ item.Total | number:'1.2-2' }}</td>
               <td style="color:var(--text-faint);text-align:right">›</td>
             </tr>
           }
@@ -79,7 +87,7 @@
             {{ col.label }}
             <span class="count">{{ col.items.length }}</span>
             <span style="margin-left:auto;font-size:11px;color:var(--text-muted)">
-              S/ {{ col.total | number:'1.0-0' }}
+              {{ col.total | number:'1.0-0' }}
             </span>
           </div>
           <div class="kcol-body">
@@ -90,7 +98,7 @@
                 <div class="kcard-cliente">{{ item.Cliente }}</div>
                 <div class="kcard-footer">
                   <span class="muted" style="font-size:11px">{{ item.FechaEmision | date:'dd/MM/yyyy' }}</span>
-                  <span class="mono" style="font-weight:600;font-size:12px">S/ {{ item.Total | number:'1.0-0' }}</span>
+                  <span class="mono" style="font-weight:600;font-size:12px">{{ item.Moneda | moneda }} {{ item.Total | number:'1.0-0' }}</span>
                 </div>
               </div>
             }
@@ -268,7 +276,7 @@
                              [name]="'precio_' + $index" min="0" (ngModelChange)="recalcular()" />
                     </td>
                     <td class="text-right mono" style="font-size:12.5px;padding-right:8px">
-                      S/ {{ (item.cantidad * item.precioUnitario) | number:'1.2-2' }}
+                      {{ form.moneda | moneda }} {{ (item.cantidad * item.precioUnitario) | number:'1.2-2' }}
                     </td>
                     <td>
                       <button class="btn-remove" (click)="quitarItem($index)" title="Quitar">×</button>
@@ -281,9 +289,9 @@
 
           <!-- Totales -->
           <div class="totales">
-            <div class="tot-row"><span>Subtotal</span><span class="mono">S/ {{ subtotal() | number:'1.2-2' }}</span></div>
-            <div class="tot-row"><span>IGV 18%</span><span class="mono">S/ {{ igvMonto() | number:'1.2-2' }}</span></div>
-            <div class="tot-row tot-total"><span>Total</span><span class="mono">S/ {{ total() | number:'1.2-2' }}</span></div>
+            <div class="tot-row"><span>Subtotal</span><span class="mono">{{ form.moneda | moneda }} {{ subtotal() | number:'1.2-2' }}</span></div>
+            <div class="tot-row"><span>IGV 18%</span><span class="mono">{{ form.moneda | moneda }} {{ igvMonto() | number:'1.2-2' }}</span></div>
+            <div class="tot-row tot-total"><span>Total</span><span class="mono">{{ form.moneda | moneda }} {{ total() | number:'1.2-2' }}</span></div>
           </div>
         </div>
 

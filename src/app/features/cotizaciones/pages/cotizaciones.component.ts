@@ -1,5 +1,5 @@
 import { Component, signal, inject, OnInit, computed } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { DecimalPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TopbarComponent } from '../../../core/layout/topbar/topbar.component';
@@ -7,6 +7,7 @@ import { UiEmptyComponent } from '../../../shared/components/ui-empty.component'
 import { UiLoadingComponent } from '../../../shared/components/ui-loading.component';
 import { BadgePipe } from '../../../shared/pipes/badge.pipe';
 import { SafeHtmlPipe } from '../../../shared/pipes/safe-html.pipe';
+import { MonedaPipe } from '../../../shared/pipes/moneda.pipe';
 import { CotizacionService } from '../services/cotizacion.service';
 import { ConfirmService } from '../../../shared/services/confirm.service';
 import { ClienteService } from '../../clientes/services/cliente.service';
@@ -27,8 +28,8 @@ const IGV = 0.18;
 @Component({
   selector: 'bwit-cotizaciones',
   standalone: true,
-  imports: [DecimalPipe, DatePipe, FormsModule, TopbarComponent,
-            UiEmptyComponent, UiLoadingComponent, BadgePipe, SafeHtmlPipe],
+  imports: [RouterLink, DecimalPipe, DatePipe, FormsModule, TopbarComponent,
+            UiEmptyComponent, UiLoadingComponent, BadgePipe, SafeHtmlPipe, MonedaPipe],
   templateUrl: './cotizaciones.component.html',
   styleUrl: './cotizaciones.component.scss'
 })

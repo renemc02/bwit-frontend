@@ -119,3 +119,10 @@
 
 .fac-portal-check { display: flex; align-items: center; gap: 7px; margin-top: 7px; font-size: 12px; color: var(--text-muted); cursor: pointer; }
 .fac-portal-check input { width: 14px; height: 14px; }
+
+.tc-cert-banner {
+  display: flex; align-items: center; gap: 8px;
+  background: #eff4ff; border: 1px solid #bfd3fe; color: #1e40af;
+  border-radius: 8px; padding: 9px 12px; font-size: 12.5px; margin-bottom: 14px;
+}
+.tc-cert-banner strong { font-weight: 700; }

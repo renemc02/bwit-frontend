@@ -9,4 +9,5 @@ export class CertificacionService {
   crear(body: any)                     { return this.api.post<any>(API.certificaciones.base, body); }
   cambiarEstado(id: number, body: any) { return this.api.patch<any>(API.certificaciones.estado(id), body); }
   aprobar(id: number, body: any)       { return this.api.post<any>(API.certificaciones.aprobar(id), body); }
+  editar(id: number, body: any)        { return this.api.put<any>(API.certificaciones.byId(id), body); }
 }

@@ -175,12 +175,42 @@ export class ReportesComponent implements OnInit {
   load() {
     this.loading.set(true);
     const q = this.qs();
-    let pending = 4;
+    let pending = 5;
     const done = () => { if (--pending === 0) this.loading.set(false); };
     this.api.get<any>(`/api/finanzas/bi/flujo-mensual${q}`).subscribe({ next: (r: any) => { this.flujo.set(r?.data ?? r ?? []); done(); }, error: done });
     this.api.get<any>(`/api/finanzas/bi/proyectos${q}`).subscribe({ next: (r: any) => { this.proyectos.set(r?.data ?? r ?? []); done(); }, error: done });
     this.api.get<any>(`/api/finanzas/bi/cotizaciones${q}`).subscribe({ next: (r: any) => { this.cotizaciones.set(r?.data ?? r ?? []); done(); }, error: done });
     this.api.get<any>(`/api/finanzas/bi/facturas${q}`).subscribe({ next: (r: any) => { this.facturas.set(r?.data ?? r ?? []); done(); }, error: done });
+    this.api.get<any>(`/api/finanzas/bi/facturacion-cliente${q}`).subscribe({ next: (r: any) => { this.facClientes.set(r ?? []); this.clienteExpandido.set(null); done(); }, error: done });
+  }
+
+  // ── Helpers para fila total ──
+  sumCant    = (s: number, c: any) => s + (c.CantidadFacturas || 0);
+  sumPEN     = (s: number, c: any) => s + (c.MontoFacturadoPEN || 0);
+  sumUSD     = (s: number, c: any) => s + (c.MontoFacturadoUSD || 0);
+  sumCobrar  = (s: number, c: any) => s + (c.MontoPorCobrar || 0);
+  sumCobrado = (s: number, c: any) => s + (c.MontoCobrado || 0);
+
+  // ── Facturación x Cliente ──
+  facClientes     = signal<any[]>([]);
+  facClienteDet   = signal<any[]>([]);
+  clienteExpandido = signal<number | null>(null);
+  clienteNombre    = signal('');
+
+  expandirCliente(c: any) {
+    if (this.clienteExpandido() === c.ClienteId) {
+      this.clienteExpandido.set(null);
+      this.facClienteDet.set([]);
+      return;
+    }
+    this.clienteExpandido.set(c.ClienteId);
+    this.clienteNombre.set(c.Cliente);
+    const q = this.qs();
+    const sep = q ? '&' : '?';
+    this.api.get<any>(`/api/finanzas/bi/facturacion-cliente/${c.ClienteId}${q}`).subscribe({
+      next: (r: any) => this.facClienteDet.set(r ?? []),
+      error: () => this.facClienteDet.set([])
+    });
   }
 
   irAProyecto(p: any) { this.router.navigate(['/proyectos', p.Id]); }

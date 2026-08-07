@@ -52,6 +52,13 @@
               </button>
             }
           }
+          @case ('Cerrada') {
+            @if (c().ProyectoId) {
+              <button class="btn primary" (click)="irAProyecto()" title="Ver el proyecto creado">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;margin-right:5px;vertical-align:-2px"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>{{ c().ProyectoCodigo || 'Ver proyecto' }} →
+              </button>
+            }
+          }
         }
         <button class="btn secondary" (click)="descargarPdf()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;margin-right:5px;vertical-align:-2px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Descargar PDF
@@ -96,24 +103,24 @@
             <tr>
               <td>{{ it.Descripcion }}</td>
               <td class="num mono">{{ it.Cantidad }}</td>
-              <td class="num mono">S/ {{ it.PrecioUnitario | number:'1.2-2' }}</td>
-              <td class="num mono">S/ {{ it.Importe | number:'1.2-2' }}</td>
+              <td class="num mono">{{ cur() }} {{ it.PrecioUnitario | number:'1.2-2' }}</td>
+              <td class="num mono">{{ cur() }} {{ it.Importe | number:'1.2-2' }}</td>
             </tr>
           }
         </tbody>
         <tfoot>
-          <tr><td colspan="3" class="tf-lbl">Subtotal</td><td class="num mono">S/ {{ c().Subtotal | number:'1.2-2' }}</td></tr>
+          <tr><td colspan="3" class="tf-lbl">Subtotal</td><td class="num mono">{{ cur() }} {{ c().Subtotal | number:'1.2-2' }}</td></tr>
           @if ((c().DescuentoGlobal ?? 0) > 0) {
             <tr style="color:var(--success)">
               <td colspan="3" class="tf-lbl">
                 Descuento
                 @if (c().TipoDescuento === 'Pct') { <span class="muted" style="font-size:11px">({{ c().DescuentoPct }}%)</span> }
               </td>
-              <td class="num mono">— S/ {{ c().DescuentoGlobal | number:'1.2-2' }}</td>
+              <td class="num mono">— {{ cur() }} {{ c().DescuentoGlobal | number:'1.2-2' }}</td>
             </tr>
           }
-          <tr><td colspan="3" class="tf-lbl">IGV (18%)</td><td class="num mono">S/ {{ c().Igv | number:'1.2-2' }}</td></tr>
-          <tr class="tf-total"><td colspan="3" class="tf-lbl">Total</td><td class="num mono">S/ {{ c().Total | number:'1.2-2' }}</td></tr>
+          <tr><td colspan="3" class="tf-lbl">IGV (18%)</td><td class="num mono">{{ cur() }} {{ c().Igv | number:'1.2-2' }}</td></tr>
+          <tr class="tf-total"><td colspan="3" class="tf-lbl">Total</td><td class="num mono">{{ cur() }} {{ c().Total | number:'1.2-2' }}</td></tr>
           @if (c().Estado !== 'Aprobada' && c().Estado !== 'Rechazada') {
             <tr>
               <td colspan="4" style="padding:10px 0 0;text-align:right">
@@ -205,11 +212,11 @@
                   @if (pf.Cantidad > 1) { <span class="muted"> ×{{ pf.Cantidad }}</span> }
                   <span class="badge muted" style="font-size:10px;margin-left:4px">{{ pf.TipoContrato }}</span>
                 </div>
-                <span class="mono muted">S/ {{ pf.CostoEstimado | number:'1.0-0' }}</span>
+                <span class="mono muted">{{ cur() }} {{ pf.CostoEstimado | number:'1.0-0' }}</span>
               </div>
             }
             <div style="text-align:right;font-size:12px;font-weight:700;padding-top:6px">
-              Total S/ {{ totalPerfiles() | number:'1.2-2' }}
+              Total {{ cur() }} {{ totalPerfiles() | number:'1.2-2' }}
             </div>
           </div>
         } @else {
@@ -347,7 +354,7 @@
                 <td><input class="input sm" [(ngModel)]="it.Descripcion" [name]="'ed_'+$index" placeholder="Descripción del servicio" /></td>
                 <td><input class="input sm" type="number" [(ngModel)]="it.Cantidad" [name]="'ec_'+$index" (ngModelChange)="recalc()" min="0" /></td>
                 <td><input class="input sm" type="number" [(ngModel)]="it.PrecioUnitario" [name]="'ep_'+$index" (ngModelChange)="recalc()" min="0" step="0.01" /></td>
-                <td class="num mono">S/ {{ (it.Cantidad * it.PrecioUnitario) | number:'1.2-2' }}</td>
+                <td class="num mono">{{ cur() }} {{ (it.Cantidad * it.PrecioUnitario) | number:'1.2-2' }}</td>
                 <td><button class="icon-btn" (click)="removeItem($index)">✕</button></td>
               </tr>
             }
@@ -355,9 +362,9 @@
         </table>
 
         <div class="totales">
-          <span>Subtotal <strong>S/ {{ subtotalEdit() | number:'1.2-2' }}</strong></span>
-          <span>IGV 18% <strong>S/ {{ igvEdit() | number:'1.2-2' }}</strong></span>
-          <span>Total <strong>S/ {{ totalEdit() | number:'1.2-2' }}</strong></span>
+          <span>Subtotal <strong>{{ cur() }} {{ subtotalEdit() | number:'1.2-2' }}</strong></span>
+          <span>IGV 18% <strong>{{ cur() }} {{ igvEdit() | number:'1.2-2' }}</strong></span>
+          <span>Total <strong>{{ cur() }} {{ totalEdit() | number:'1.2-2' }}</strong></span>
         </div>
 
         <div class="form-row" style="margin-top:14px">
@@ -390,7 +397,7 @@
       <div class="modal-body">
         <p class="muted" style="font-size:13px;margin:0 0 14px">
           Se creará un proyecto a partir de la cotización <strong>{{ c()?.Codigo }}</strong>
-          por un monto de <strong>S/ {{ c()?.Total | number:'1.2-2' }}</strong>.
+          por un monto de <strong>{{ cur() }} {{ c()?.Total | number:'1.2-2' }}</strong>.
         </p>
         <div class="form-row">
           <label>Tipo de proyecto</label>
@@ -409,6 +416,28 @@
             <label>Fecha de fin <span class="req">*</span></label>
             <input class="input" type="date" [(ngModel)]="cv.fechaFin" name="cv_fechafin" />
           </div>
+        </div>
+
+        <!-- Subir contrato firmado -->
+        <div class="form-row" style="margin-top:14px">
+          <label>Contrato firmado (opcional)</label>
+          @if (!contratoFile()) {
+            <label class="dropzone" style="cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="width:24px;height:24px"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+              <div style="font-size:13px;font-weight:500">Seleccionar archivo del contrato</div>
+              <div class="muted" style="font-size:11px">PDF, Word, imagen — máx. 20 MB</div>
+              <input type="file" (change)="onContratoSelected($event)" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" style="display:none" />
+            </label>
+          } @else {
+            <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface-2);border-radius:8px;font-size:13px">
+              <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2" style="width:18px;height:18px;flex-shrink:0"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ contratoFile()!.name }}</span>
+              <span class="muted" style="font-size:11px;flex-shrink:0">{{ (contratoFile()!.size / 1024) | number:'1.0-0' }} KB</span>
+              <button class="icon-btn" style="width:20px;height:20px" (click)="quitarContrato()" title="Quitar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          }
         </div>
         @if (convError()) { <div class="error-msg" style="margin-top:12px">{{ convError() }}</div> }
       </div>
@@ -464,7 +493,7 @@
       <div class="modal-body">
         <div class="cert-resumen" style="margin-bottom:14px">
           <div class="cr-desc muted">Subtotal de la cotización</div>
-          <div class="cr-monto">S/ {{ c()?.Subtotal | number:'1.2-2' }}</div>
+          <div class="cr-monto">{{ cur() }} {{ c()?.Subtotal | number:'1.2-2' }}</div>
         </div>
         <div class="form-row">
           <label>Tipo de descuento</label>
@@ -481,7 +510,7 @@
                  [(ngModel)]="descForm.valor" name="desc_valor" />
           @if (descForm.tipo === 'Pct' && descForm.valor > 0) {
             <div class="muted" style="font-size:12px;margin-top:4px">
-              Equivale a S/ {{ ((c()?.Subtotal ?? 0) * descForm.valor / 100) | number:'1.2-2' }} de descuento
+              Equivale a {{ cur() }} {{ ((c()?.Subtotal ?? 0) * descForm.valor / 100) | number:'1.2-2' }} de descuento
             </div>
           }
         </div>
@@ -515,7 +544,7 @@
                   <td><div class="strong" style="font-size:13px">{{ pf.Perfil }}</div>@if (pf.Notas) { <div class="muted" style="font-size:11px">{{ pf.Notas }}</div> }</td>
                   <td class="mono">{{ pf.Cantidad }}</td>
                   <td><span class="badge" style="font-size:11px">{{ pf.TipoContrato }}</span></td>
-                  <td class="num mono">S/ {{ pf.CostoEstimado | number:'1.2-2' }}</td>
+                  <td class="num mono">{{ cur() }} {{ pf.CostoEstimado | number:'1.2-2' }}</td>
                   <td><button class="icon-btn danger" (click)="eliminarPerfil(pf)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
                   </button></td>
@@ -523,7 +552,7 @@
               }
               <tr class="tf-total">
                 <td colspan="3">Total estimado perfiles</td>
-                <td class="num mono">S/ {{ totalPerfiles() | number:'1.2-2' }}</td>
+                <td class="num mono">{{ cur() }} {{ totalPerfiles() | number:'1.2-2' }}</td>
                 <td></td>
               </tr>
             </tbody>
@@ -579,7 +608,7 @@
             </div>
           </div>
           <div class="muted" style="font-size:12px;margin-top:6px">
-            Costo estimado: <strong>S/ {{ costoPerfilEstimado() | number:'1.2-2' }}</strong>
+            Costo estimado: <strong>{{ cur() }} {{ costoPerfilEstimado() | number:'1.2-2' }}</strong>
           </div>
           @if (pfError()) { <div class="error-msg" style="margin-top:8px">{{ pfError() }}</div> }
           <div style="text-align:right;margin-top:10px">

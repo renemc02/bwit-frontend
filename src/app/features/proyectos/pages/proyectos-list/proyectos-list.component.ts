@@ -5,13 +5,14 @@ import { TopbarComponent } from '../../../../core/layout/topbar/topbar.component
 import { UiEmptyComponent } from '../../../../shared/components/ui-empty.component';
 import { UiLoadingComponent } from '../../../../shared/components/ui-loading.component';
 import { BadgePipe } from '../../../../shared/pipes/badge.pipe';
+import { MonedaPipe } from '../../../../shared/pipes/moneda.pipe';
 import { ProyectoService } from '../../services/proyecto.service';
 import { ESTADOS_PROYECTO } from '../../../../core/constants/app.constants';
 
 @Component({
   selector: 'bwit-proyectos-list',
   standalone: true,
-  imports: [RouterLink, DecimalPipe, TopbarComponent, UiEmptyComponent, UiLoadingComponent, BadgePipe],
+  imports: [RouterLink, DecimalPipe, TopbarComponent, UiEmptyComponent, UiLoadingComponent, BadgePipe, MonedaPipe],
   templateUrl: './proyectos-list.component.html'
 })
 export class ProyectosListComponent implements OnInit {

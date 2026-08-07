@@ -21,7 +21,7 @@
     } @else {
       <table class="table">
         <thead>
-          <tr><th>Código</th><th>Proyecto</th><th>Cliente</th><th>PM</th><th>Estado</th><th style="text-align:right">Contrato</th><th style="text-align:right">Facturado</th><th>Avance</th></tr>
+          <tr><th>Código</th><th>Proyecto</th><th>Cliente</th><th>Cotización</th><th>PM</th><th>Estado</th><th style="text-align:right">Contrato</th><th style="text-align:right">Facturado</th><th>Avance</th></tr>
         </thead>
         <tbody>
           @for (p of items(); track p.Id) {
@@ -29,10 +29,17 @@
               <td class="id">{{ p.Codigo }}</td>
               <td class="strong">{{ p.Nombre }}</td>
               <td class="muted">{{ p.Cliente }}</td>
+              <td>
+                @if (p.CotizacionCodigo) {
+                  <a class="sub-link" (click)="$event.stopPropagation()" [routerLink]="['/cotizaciones', p.CotizacionId]">{{ p.CotizacionCodigo }}</a>
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
               <td class="muted">{{ p.PM }}</td>
               <td><span class="badge" [class]="p.Estado | badge"><span class="dot"></span>{{ p.Estado }}</span></td>
-              <td class="num mono">S/ {{ p.MontoTotal | number:'1.0-0' }}</td>
-              <td class="num mono">S/ {{ p.Facturado  | number:'1.0-0' }}</td>
+              <td class="num mono">{{ p.Moneda | moneda }} {{ p.MontoTotal | number:'1.0-0' }}</td>
+              <td class="num mono">{{ p.Moneda | moneda }} {{ p.Facturado  | number:'1.0-0' }}</td>
               <td style="min-width:120px">
                 <div style="display:flex;align-items:center;gap:8px">
                   <div class="progress" style="flex:1">

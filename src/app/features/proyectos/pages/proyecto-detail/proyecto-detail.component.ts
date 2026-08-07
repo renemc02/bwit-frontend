@@ -10,6 +10,7 @@ import { CertificacionService } from '../../../certificaciones/services/certific
 import { ApiService } from '../../../../core/http/api.service';
 import { FacturaService } from '../../../facturacion/services/factura.service';
 import { ConfirmService } from '../../../../shared/services/confirm.service';
+import { AdjuntoService } from '../../../../core/services/adjunto.service';
 import { AdendaService } from '../../services/adenda.service';
 import { ProyectoService } from '../../services/proyecto.service';
 
@@ -30,6 +31,7 @@ export class ProyectoDetailComponent implements OnInit {
   private api     = inject(ApiService);
   private adeSvc   = inject(AdendaService);
   private confirm  = inject(ConfirmService);
+  private adjuntoSvc = inject(AdjuntoService);
 
   p       = signal<any>(null);
   loading = signal(true);
@@ -47,6 +49,9 @@ export class ProyectoDetailComponent implements OnInit {
     { n: 5, label: 'Factura emitida' },
     { n: 6, label: 'Pago recibido' },
   ];
+
+  // Símbolo de moneda dinámico
+  cur = computed(() => this.p()?.Moneda === 'USD' ? 'US$' : 'S/');
 
   costos   = computed(() => (this.p()?.CostoEquipo ?? 0) + (this.p()?.CostoTerceros ?? 0));
   utilidad = computed(() => (this.p()?.MontoTotal ?? 0) - this.costos());
@@ -193,8 +198,19 @@ export class ProyectoDetailComponent implements OnInit {
   // ── Modal nueva certificación ──
   modalCert  = signal(false);
   certError  = signal('');
-  certForm: any = { periodo: '', tipo: 'Mensual', descripcion: '', montoSinIgv: 0, fechaInicio: '', fechaFin: '' };
+  certFiles  = signal<File[]>([]);
+  certForm: any = { periodo: '', tipo: 'Mensual', descripcion: '', montoSinIgv: 0, descuentoTipo: 'ninguno', descuentoValor: 0, fechaInicio: '', fechaFin: '' };
   certTotal  = signal(0);
+  certDescuento = signal(0);
+  certMontoNeto = signal(0);
+
+  // ── Modal editar certificación ──
+  modalCertEdit = signal(false);
+  certEditando  = signal<any>(null);
+
+  // ── Modal ver certificación ──
+  modalCertVer = signal(false);
+  certViendo   = signal<any>(null);
 
   // ── Modal aprobar certificación (registrar OC) ──
   modalAprobar = signal(false);
@@ -218,20 +234,40 @@ export class ProyectoDetailComponent implements OnInit {
   };
 
   abrirCert() {
-    this.certForm = { periodo: '', tipo: 'Mensual', descripcion: '', montoSinIgv: 0, fechaInicio: '', fechaFin: '' };
+    this.certForm = { periodo: '', tipo: 'Mensual', descripcion: '', montoSinIgv: 0, descuentoTipo: 'ninguno', descuentoValor: 0, fechaInicio: '', fechaFin: '' };
     this.certTotal.set(0);
+    this.certDescuento.set(0);
+    this.certMontoNeto.set(0);
+    this.certFiles.set([]);
     this.certError.set('');
     this.modalCert.set(true);
   }
   cerrarCert() { this.modalCert.set(false); }
+
+  onCertFilesSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files) this.certFiles.set(Array.from(input.files));
+  }
+  quitarCertFile(i: number) { this.certFiles.update(f => f.filter((_, idx) => idx !== i)); }
+
   recalcCert() {
     const monto = Number(this.certForm.montoSinIgv) || 0;
-    this.certTotal.set(monto * 1.18);
+    let descuento = 0;
+    if (this.certForm.descuentoTipo === 'Porcentaje') {
+      descuento = Math.round(monto * (Number(this.certForm.descuentoValor) || 0) / 100 * 100) / 100;
+    } else if (this.certForm.descuentoTipo === 'MontoFijo') {
+      descuento = Math.round((Number(this.certForm.descuentoValor) || 0) * 100) / 100;
+    }
+    const neto = monto - descuento;
+    this.certDescuento.set(descuento);
+    this.certMontoNeto.set(neto);
+    this.certTotal.set(Math.round(neto * 1.18 * 100) / 100);
   }
+
   guardarCert(estado: string) {
     if (!this.certForm.periodo.trim()) { this.certError.set('Ingresa el periodo.'); return; }
     if (!this.certForm.montoSinIgv || this.certForm.montoSinIgv <= 0) { this.certError.set('Ingresa el monto a certificar.'); return; }
-    const body = {
+    const body: any = {
       ProyectoId: this.p()?.Id,
       Periodo: this.certForm.periodo,
       Descripcion: this.certForm.descripcion,
@@ -241,9 +277,72 @@ export class ProyectoDetailComponent implements OnInit {
       FechaInicio: this.certForm.fechaInicio || null,
       FechaFin: this.certForm.fechaFin || null,
     };
+    if (this.certForm.descuentoTipo !== 'ninguno' && Number(this.certForm.descuentoValor) > 0) {
+      body.DescuentoTipo = this.certForm.descuentoTipo;
+      body.DescuentoValor = Number(this.certForm.descuentoValor);
+    }
     this.certSvc.crear(body).subscribe({
-      next: () => { this.cerrarCert(); this.recargar(); },
+      next: (r: any) => {
+        const certId = r?.id ?? r?.Id ?? r?.NewId;
+        // Subir adjuntos si hay
+        const files = this.certFiles();
+        if (files.length && certId) {
+          let pending = files.length;
+          files.forEach(f => {
+            this.adjuntoSvc.subir('Certificacion', certId, f).subscribe({
+              next: () => { if (--pending === 0) { this.cerrarCert(); this.recargar(); } },
+              error: () => { if (--pending === 0) { this.cerrarCert(); this.recargar(); } }
+            });
+          });
+        } else {
+          this.cerrarCert(); this.recargar();
+        }
+      },
       error: () => { this.certError.set('No se pudo crear la certificación.'); }
+    });
+  }
+
+  // ── Ver certificación ──
+  verCert(c: any) {
+    this.certViendo.set(c);
+    this.modalCertVer.set(true);
+  }
+  cerrarCertVer() { this.modalCertVer.set(false); }
+
+  // ── Editar certificación ──
+  editarCert(c: any) {
+    this.certEditando.set(c);
+    this.certForm = {
+      periodo: c.Periodo, tipo: c.Tipo ?? 'Mensual', descripcion: c.Descripcion ?? '',
+      montoSinIgv: c.Subtotal ?? c.Monto, descuentoTipo: c.DescuentoTipo ?? 'ninguno',
+      descuentoValor: c.DescuentoValor ?? 0, fechaInicio: c.FechaInicio ? new Date(c.FechaInicio).toISOString().split('T')[0] : '',
+      fechaFin: c.FechaFin ? new Date(c.FechaFin).toISOString().split('T')[0] : '',
+    };
+    this.recalcCert();
+    this.certError.set('');
+    this.modalCertEdit.set(true);
+  }
+  cerrarCertEdit() { this.modalCertEdit.set(false); }
+
+  guardarCertEdit() {
+    const c = this.certEditando();
+    if (!c) return;
+    if (!this.certForm.periodo.trim()) { this.certError.set('Ingresa el periodo.'); return; }
+    if (!this.certForm.montoSinIgv || this.certForm.montoSinIgv <= 0) { this.certError.set('Ingresa el monto.'); return; }
+    const body: any = {
+      Periodo: this.certForm.periodo,
+      Descripcion: this.certForm.descripcion,
+      Monto: Number(this.certForm.montoSinIgv),
+      FechaInicio: this.certForm.fechaInicio || null,
+      FechaFin: this.certForm.fechaFin || null,
+    };
+    if (this.certForm.descuentoTipo !== 'ninguno' && Number(this.certForm.descuentoValor) > 0) {
+      body.DescuentoTipo = this.certForm.descuentoTipo;
+      body.DescuentoValor = Number(this.certForm.descuentoValor);
+    }
+    this.certSvc.editar(c.Id, body).subscribe({
+      next: () => { this.cerrarCertEdit(); this.recargar(); },
+      error: () => { this.certError.set('No se pudo actualizar.'); }
     });
   }
 
@@ -318,11 +417,19 @@ export class ProyectoDetailComponent implements OnInit {
       condicionPago: 'Crédito 30 días', moneda: this.p()?.Moneda ?? 'PEN',
       enviarSunat: true, enviarEmail: true, aplicaDetraccion: false,
       portalSunat: false, serieManual: '', numeroManual: null,
+      descuentoTipo: 'ninguno', descuentoValor: 0,
     };
+    // Items solo con el monto bruto (sin descuento)
+    const subtotal = Number(c.Subtotal ?? c.Monto) || 0;
     this.facItems.set([{
       Descripcion: c.Descripcion || `Certificación ${c.Codigo} · ${c.Periodo}`,
-      Cantidad: 1, PrecioUnitario: Number(c.Monto) || 0,
+      Cantidad: 1, PrecioUnitario: subtotal,
     }]);
+    // Si la cert tiene descuento, pre-cargar el descuento global
+    if (c.DescuentoTipo && Number(c.MontoDescuento) > 0) {
+      this.facForm.descuentoTipo = c.DescuentoTipo;
+      this.facForm.descuentoValor = Number(c.DescuentoValor) || 0;
+    }
     this.calcFacTotales();
     this.facError.set('');
     this.modalFactura.set(true);
@@ -343,11 +450,21 @@ export class ProyectoDetailComponent implements OnInit {
     this.calcFacTotales();
   }
 
+  facDescuento = signal(0);
+
   calcFacTotales() {
     const sub = this.facItems().reduce((s, it) => s + (Number(it.Cantidad) || 0) * (Number(it.PrecioUnitario) || 0), 0);
+    let descuento = 0;
+    if (this.facForm.descuentoTipo === 'Porcentaje') {
+      descuento = Math.round(sub * (Number(this.facForm.descuentoValor) || 0) / 100 * 100) / 100;
+    } else if (this.facForm.descuentoTipo === 'MontoFijo') {
+      descuento = Math.round((Number(this.facForm.descuentoValor) || 0) * 100) / 100;
+    }
+    const valorVenta = sub - descuento;
     this.facSubtotal.set(sub);
-    this.facIgv.set(Math.round(sub * 0.18 * 100) / 100);
-    this.facTotal.set(Math.round((sub * 1.18) * 100) / 100);
+    this.facDescuento.set(descuento);
+    this.facIgv.set(Math.round(valorVenta * 0.18 * 100) / 100);
+    this.facTotal.set(Math.round(valorVenta * 1.18 * 100) / 100);
   }
 
   calcVencimiento() { /* trigger change detection */ }
@@ -389,6 +506,8 @@ export class ProyectoDetailComponent implements OnInit {
       Estado: modo === 'borrador' ? 'Borrador' : 'Pendiente',
       SerieManual: this.facForm.portalSunat ? (this.facForm.serieManual || '').trim() : null,
       NumeroManual: this.facForm.portalSunat && this.facForm.numeroManual ? Number(this.facForm.numeroManual) : null,
+      DescuentoTipo: this.facForm.descuentoTipo !== 'ninguno' && Number(this.facForm.descuentoValor) > 0 ? this.facForm.descuentoTipo : null,
+      DescuentoValor: this.facForm.descuentoTipo !== 'ninguno' && Number(this.facForm.descuentoValor) > 0 ? Number(this.facForm.descuentoValor) : null,
       Items: this.facItems()
         .filter((i: any) => i.Descripcion.trim())
         .map((i: any) => ({
@@ -407,6 +526,7 @@ export class ProyectoDetailComponent implements OnInit {
   montoCobro = '';
   facturaACobrar: any = null;
   modalCobro = signal(false);
+  cobroError = signal('');
   cobroForm: any = { metodoPagoId: null, cuentaBancariaId: null, referencia: '', notas: '', fechaPago: '' };
   metodosPago = signal<any[]>([]);
 
@@ -511,6 +631,7 @@ export class ProyectoDetailComponent implements OnInit {
       fechaPago: new Date().toISOString().split('T')[0],
     };
     this.cargarCuentas();
+    this.cobroError.set('');
     this.modalCobro.set(true);
   }
 
@@ -518,18 +639,43 @@ export class ProyectoDetailComponent implements OnInit {
     const f = this.facturaACobrar;
     const monto = this.montoCobro;
     if (!monto || isNaN(Number(monto)) || Number(monto) <= 0) {
-      this.modalCobro.set(false); return;
+      this.cobroError.set('Ingresa un monto válido.'); return;
     }
+    if (!this.cobroForm.cuentaBancariaId) {
+      this.cobroError.set('Selecciona la cuenta bancaria de ingreso.'); return;
+    }
+    this.cobroError.set('');
+
     const body = {
       FacturaId: f.Id,
-      FechaPago: new Date().toISOString().split('T')[0],
+      FechaPago: this.cobroForm.fechaPago || new Date().toISOString().split('T')[0],
       Monto: Number(monto),
-      MetodoPago: 'Transferencia',
-      Referencia: null,
+      MetodoPagoId: this.cobroForm.metodoPagoId ? Number(this.cobroForm.metodoPagoId) : 0,
+      CuentaBancariaId: this.cobroForm.cuentaBancariaId ? Number(this.cobroForm.cuentaBancariaId) : null,
+      Referencia: this.cobroForm.referencia?.trim() || null,
+      Notas: this.cobroForm.notas?.trim() || null,
     };
-    this.facSvc.registrarPago(body).subscribe({
-      next: () => { this.modalCobro.set(false); this.facturasLoaded.set(false); this.onTabChange('facturas'); this.recargar(); },
-      error: () => {}
+
+    // Cuenta seleccionada para mostrarla en la confirmación
+    const cuenta = this.cuentasBancarias().find((c: any) => c.Id === Number(this.cobroForm.cuentaBancariaId));
+    const cuentaTxt = cuenta ? `${cuenta.Banco} · ${cuenta.Alias}` : '';
+
+    // Cerrar el modal ANTES de confirmar (evita superposición de backdrops)
+    this.modalCobro.set(false);
+
+    this.confirm.open({
+      tipo: 'guardar',
+      titulo: 'Registrar cobro',
+      mensaje: `¿Registrar el cobro de <strong>S/ ${Number(monto).toFixed(2)}</strong> para la factura <strong>${f.Codigo}</strong>?`,
+      detalle: cuentaTxt ? `Ingreso a: ${cuentaTxt}` : undefined,
+      btnConfirmar: '$ Registrar cobro',
+      btnCancelar: 'Cancelar',
+    }).then(ok => {
+      if (!ok) { this.modalCobro.set(true); return; }  // reabrir modal si cancela
+      this.facSvc.registrarPago(body).subscribe({
+        next: () => { this.facturasLoaded.set(false); this.onTabChange('facturas'); this.recargar(); },
+        error: () => { this.cobroError.set('No se pudo registrar el cobro. Intenta de nuevo.'); this.modalCobro.set(true); }
+      });
     });
   }
 
@@ -777,19 +923,34 @@ export class ProyectoDetailComponent implements OnInit {
     });
   }
 
-  abrirTercerizado() {
+  // Certificación a vincular (desde lado 2) y lista de aprobadas (lado 1)
+  certVinculada = signal<any | null>(null);
+  certsAprobadas = signal<any[]>([]);
+
+  abrirTercerizado(certPrefill?: any) {
     const hoy = new Date();
     const mes = hoy.toLocaleString('es', { month: 'long' });
+    const periodoDefault = `${mes.charAt(0).toUpperCase()+mes.slice(1)} ${hoy.getFullYear()}`;
+    this.certVinculada.set(certPrefill ?? null);
     this.tcForm = {
       proveedorId: null, proveedorNombre: '', servicio: '',
-      periodo: `${mes.charAt(0).toUpperCase()+mes.slice(1)} ${hoy.getFullYear()}`,
-      costo: 0, moneda: 'PEN', facturaProveedor: '', fechaPago: '', notas: ''
+      // si viene de una certificación, copiar su periodo (el costo queda vacío)
+      periodo: certPrefill?.Periodo || periodoDefault,
+      costo: null, moneda: 'PEN', facturaProveedor: '', fechaPago: '', notas: '',
+      certificacionId: certPrefill?.Id ?? null,
     };
     this.tcError.set('');
-    // Cargar lista de proveedores si no está cargada
     if (!this.proveedoresList().length) {
       this.api.get<any>('/api/proveedores?PageSize=200').subscribe({
         next: (r: any) => this.proveedoresList.set(r?.data ?? r ?? []),
+        error: () => {}
+      });
+    }
+    // Cargar certificaciones aprobadas del proyecto para el selector (lado 1)
+    const pid = this.p()?.Id;
+    if (pid && !certPrefill) {
+      this.api.get<any>(`/api/proyectos/${pid}/certificaciones-aprobadas`).subscribe({
+        next: (r: any) => this.certsAprobadas.set(r?.data ?? r ?? []),
         error: () => {}
       });
     }
@@ -801,13 +962,19 @@ export class ProyectoDetailComponent implements OnInit {
     if (p) this.tcForm.proveedorNombre = p.RazonSocial;
   }
 
-  cerrarTercerizado() { this.modalTercerizado.set(false); }
+  cerrarTercerizado() {
+    const volverACert = this.certVinculada();
+    this.modalTercerizado.set(false);
+    this.certVinculada.set(null);
+    // Si venía del modal de certificación, reabrirlo
+    if (volverACert) setTimeout(() => this.modalCertTerc.set(true), 150);
+  }
 
   confirmarTercerizado() {
     const nombreProv = this.tcForm.proveedorNombre?.trim() || '';
     if (!nombreProv) { this.tcError.set('Selecciona o ingresa el proveedor.'); return; }
     if (!this.tcForm.servicio.trim()) { this.tcError.set('Ingresa el servicio.'); return; }
-    if (!this.tcForm.costo || this.tcForm.costo <= 0) { this.tcError.set('Ingresa el costo.'); return; }
+    if (!this.tcForm.costo || Number(this.tcForm.costo) <= 0) { this.tcError.set('Ingresa el costo.'); return; }
     const id = this.p()?.Id;
     if (!id) return;
     const body = {
@@ -819,11 +986,61 @@ export class ProyectoDetailComponent implements OnInit {
       FacturaProveedor: this.tcForm.facturaProveedor || null,
       FechaPago: this.tcForm.fechaPago || null,
       Notas: this.tcForm.notas || null,
+      CertificacionId: this.tcForm.certificacionId ? Number(this.tcForm.certificacionId) : null,
     };
     this.modalTercerizado.set(false);
     this.api.post<any>(`/api/proyectos/${id}/tercerizados`, body).subscribe({
-      next: () => { this.terceriadosLoaded.set(false); this.cargarTercerizados(); this.recargar(); },
+      next: () => {
+        this.terceriadosLoaded.set(false); this.cargarTercerizados(); this.recargar();
+        // Si venía vinculado a una certificación, refrescar y reabrir su modal
+        if (this.certDetalle() && this.certVinculada()) {
+          this.cargarCertTercerizados(this.certDetalle().Id);
+          setTimeout(() => this.modalCertTerc.set(true), 150);
+        }
+        this.certVinculada.set(null);
+      },
       error: () => { this.tcError.set('No se pudo registrar. Intenta de nuevo.'); this.modalTercerizado.set(true); }
+    });
+  }
+
+  // ── Lado 2: tercerizados vinculados a una certificación ──
+  certDetalle = signal<any | null>(null);
+  certTercerizados = signal<any[]>([]);
+  modalCertTerc = signal(false);
+
+  abrirCertTercerizados(cert: any) {
+    this.certDetalle.set(cert);
+    this.certTercerizados.set([]);
+    this.cargarCertTercerizados(cert.Id);
+    this.modalCertTerc.set(true);
+  }
+
+  cargarCertTercerizados(certId: number) {
+    this.api.get<any>(`/api/certificaciones/${certId}/tercerizados`).subscribe({
+      next: (r: any) => this.certTercerizados.set(r?.data ?? r ?? []),
+      error: () => this.certTercerizados.set([]),
+    });
+  }
+
+  registrarTercerizadoDesdeCert(cert: any) {
+    // Cerrar modal certificación primero (evita superposición de modales)
+    this.modalCertTerc.set(false);
+    // Pequeño delay para que el backdrop se cierre antes de abrir el nuevo
+    setTimeout(() => this.abrirTercerizado(cert), 150);
+  }
+
+  desvincularTercerizado(t: any) {
+    const pid = this.p()?.Id;
+    if (!pid) return;
+    this.confirm.eliminar(`el vínculo con ${t.Proveedor}`).then(ok => {
+      if (!ok) return;
+      this.api.put<any>(`/api/proyectos/${pid}/tercerizados/${t.Id}/certificacion`, { CertificacionId: null }).subscribe({
+        next: () => {
+          if (this.certDetalle()) this.cargarCertTercerizados(this.certDetalle().Id);
+          this.terceriadosLoaded.set(false); this.cargarTercerizados();
+        },
+        error: () => {}
+      });
     });
   }
 

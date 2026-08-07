@@ -1,6 +1,6 @@
 {
   "/api": {
-    "target": "https://api-bwit-h5hkbjffbkdycdbr.canadacentral-01.azurewebsites.net", 
+    "target": "https://api-bwit-h5hkbjffbkdycdbr.canadacentral-01.azurewebsites.net",
     "secure": false,
     "changeOrigin": true
   }

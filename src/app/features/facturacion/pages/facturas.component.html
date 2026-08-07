@@ -23,8 +23,8 @@
               <td class="id">{{ item.ProyectoCodigo }}</td>
               <td class="muted">{{ item.FechaEmision   | date:'dd/MM/yyyy' }}</td>
               <td [style.color]="item.DiasVencido > 0 ? 'var(--danger)' : 'var(--text-muted)'">{{ item.FechaVencimiento | date:'dd/MM/yyyy' }}</td>
-              <td class="num mono">S/ {{ item.Total | number:'1.0-0' }}</td>
-              <td class="num mono" [style.color]="item.Saldo > 0 ? 'var(--warning)' : 'inherit'">S/ {{ item.Saldo | number:'1.0-0' }}</td>
+              <td class="num mono">{{ item.Moneda | moneda }} {{ item.Total | number:'1.0-0' }}</td>
+              <td class="num mono" [style.color]="item.Saldo > 0 ? 'var(--warning)' : 'inherit'">{{ item.Moneda | moneda }} {{ item.Saldo | number:'1.0-0' }}</td>
               <td><span class="badge" [class]="item.Estado | badge"><span class="dot"></span>{{ item.Estado }}</span></td>
             </tr>
           }

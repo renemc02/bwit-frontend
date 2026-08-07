@@ -9,6 +9,7 @@ import { CotizacionService } from '../../services/cotizacion.service';
 import { ClienteService } from '../../../clientes/services/cliente.service';
 import { MaestroService } from '../../../configuracion/services/maestro.service';
 import { AdjuntosComponent } from '../../../../shared/components/adjuntos.component';
+import { AdjuntoService } from '../../../../core/services/adjunto.service';
 import { ApiService } from '../../../../core/http/api.service';
 import { ConfirmService } from '../../../../shared/services/confirm.service';
 
@@ -26,6 +27,7 @@ export class CotizacionDetailComponent implements OnInit {
   private clienteSvc = inject(ClienteService);
   private maestroSvc = inject(MaestroService);
   private confirm    = inject(ConfirmService);
+  private adjuntoSvc = inject(AdjuntoService);
   private api        = inject(ApiService);
 
   // ── Descuento ──
@@ -129,6 +131,9 @@ export class CotizacionDetailComponent implements OnInit {
   c            = signal<any>(null);
   loading      = signal(true);
   responsables = signal<any[]>([]);
+
+  // Símbolo de moneda dinámico
+  cur = computed(() => this.c()?.Moneda === 'USD' ? 'US$' : 'S/');
 
   // Catálogos para el modal de edición
   clientes        = signal<any[]>([]);
@@ -365,22 +370,33 @@ export class CotizacionDetailComponent implements OnInit {
   modalConvertir = signal(false);
   convirtiendo   = signal(false);
   convError      = signal('');
+  contratoFile   = signal<File | null>(null);
   cv: { tipoProyecto: string; fechaInicio: string; fechaFin: string } = { tipoProyecto: '', fechaInicio: '', fechaFin: '' };
 
   convertir() {
     const d = this.c();
     if (!d) return;
-    // Precargar con datos de la cotización
     this.cv = {
       tipoProyecto: d.Tipo ?? 'General',
       fechaInicio: new Date().toISOString().split('T')[0],
       fechaFin: '',
     };
+    this.contratoFile.set(null);
     this.convError.set('');
     this.modalConvertir.set(true);
   }
 
   cerrarConvertir() { this.modalConvertir.set(false); }
+
+  onContratoSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.contratoFile.set(file);
+  }
+
+  quitarContrato() {
+    this.contratoFile.set(null);
+  }
 
   confirmarConvertir() {
     const id = this.c()?.Id;
@@ -398,18 +414,38 @@ export class CotizacionDetailComponent implements OnInit {
       tipo: 'aprobar',
       titulo: 'Crear proyecto',
       mensaje: `¿Crear un proyecto a partir de la cotización <strong>${this.c()?.Codigo}</strong>?`,
-      detalle: `Monto del proyecto: S/ ${Number(this.c()?.Total ?? 0).toFixed(2)}. Una vez creado, el proyecto quedará vinculado a esta cotización.`,
+      detalle: `Monto del proyecto: ${this.cur()} ${Number(this.c()?.Total ?? 0).toFixed(2)}. Una vez creado, el proyecto quedará vinculado a esta cotización.`,
       btnConfirmar: 'Crear proyecto',
       btnCancelar: 'Cancelar',
     }).then(ok => {
-      if (!ok) return;
+      if (!ok) { this.convirtiendo.set(false); return; }
       this.svc.convertir(id, body).subscribe({
         next: (r: any) => {
-          this.convirtiendo.set(false);
-          this.modalConvertir.set(false);
-          const proyectoId = r?.id ?? r?.Id ?? r?.NewId;
-          this.c.update(v => ({ ...v, ProyectoId: proyectoId }));
-          if (proyectoId) this.router.navigate(['/proyectos', proyectoId]);
+          const proyectoId = r?.proyectoId ?? r?.ProyectoId ?? r?.id ?? r?.Id ?? r?.NewId;
+          // Subir contrato si se seleccionó
+          const file = this.contratoFile();
+          if (file && proyectoId) {
+            this.adjuntoSvc.subir('Proyecto', proyectoId, file, 'Contrato firmado').subscribe({
+              next: () => {
+                this.convirtiendo.set(false);
+                this.modalConvertir.set(false);
+                this.recargar(); // Refrescar cotización
+                this.router.navigate(['/proyectos', proyectoId]);
+              },
+              error: () => {
+                // Proyecto se creó OK pero el archivo falló — navegar de todos modos
+                this.convirtiendo.set(false);
+                this.modalConvertir.set(false);
+                this.recargar();
+                this.router.navigate(['/proyectos', proyectoId]);
+              }
+            });
+          } else {
+            this.convirtiendo.set(false);
+            this.modalConvertir.set(false);
+            this.recargar(); // Refrescar cotización
+            if (proyectoId) this.router.navigate(['/proyectos', proyectoId]);
+          }
         },
         error: () => { this.convirtiendo.set(false); this.convError.set('No se pudo crear el proyecto. Intenta de nuevo.'); }
       });
