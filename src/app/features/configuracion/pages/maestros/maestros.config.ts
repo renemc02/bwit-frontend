@@ -191,7 +191,7 @@ export const MAESTROS_CONFIG: Record<string, MaestroConfig> = {
     fields: [
       { key: 'Nombre',    label: 'Nombre', required: true, col: 2 },
       { key: 'Email',     label: 'Email', required: true, col: 2 },
-      { key: 'RolNombre', label: 'Rol', tipo: 'select', opciones: ['Administrador','Gerente','Project Manager','Ventas','Viewer'] },
+      { key: 'RolNombre', label: 'Rol', tipo: 'select', opciones: ['Administrador','Gerencia','Ventas','Proyectos','Asistencia Administración','Viewer'] },
       { key: 'Activo',    label: 'Activo', tipo: 'check' },
     ],
     blank: { Nombre:'', Email:'', RolId:null, RolNombre:'Viewer', Activo:true },

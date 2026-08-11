@@ -1,11 +1,13 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, computed } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../auth/auth.service';
 import { ThemeService } from '../../services/theme.service';
 import { SafeHtmlPipe } from '../../../shared/pipes/safe-html.pipe';
 import { ConfigPanelService } from '../../../features/configuracion/services/config-panel.service';
+import { PermissionService } from '../../auth/permission.service';
+import { EmpresaService } from '../../services/empresa.service';
 
-interface NavItem { label: string; route: string; icon: string; section?: string; badge?: number; }
+interface NavItem { label: string; route: string; icon: string; section?: string; badge?: number; modulo?: string; }
 
 const I: Record<string, string> = {
   'layout-dashboard': `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>`,
@@ -41,26 +43,65 @@ export class SidebarComponent {
   readonly theme    = inject(ThemeService);
   readonly collapsed = signal(false);
   private readonly configPanel = inject(ConfigPanelService);
+  readonly perm = inject(PermissionService);
+
+  private readonly empresaSvc = inject(EmpresaService);
 
   abrirConfig() { this.configPanel.abrir('empresas'); }
 
-  navItems: NavItem[] = [
-    { label: 'Dashboard',      route: '/dashboard',       icon: 'layout-dashboard', section: 'Resumen' },
-    { label: 'Pipeline',       route: '/pipeline',        icon: 'git-branch',       section: 'Comercial' },
-    { label: 'Cotizaciones',   route: '/cotizaciones',    icon: 'file-text',        badge: 3 },
-    { label: 'Clientes',       route: '/clientes',        icon: 'users' },
-    { label: 'Proyectos',      route: '/proyectos',       icon: 'briefcase',        section: 'Operación', badge: 4 },
-    { label: 'Equipo',         route: '/equipo',          icon: 'user-check' },
-    { label: 'Certificaciones',route: '/certificaciones', icon: 'clipboard-check',  badge: 3 },
-    { label: 'Facturación',    route: '/facturacion',     icon: 'receipt',          section: 'Finanzas' },
-    { label: 'Cobros',         route: '/pagos/cobros',    icon: 'trending-up' },
-    { label: 'Pagos',          route: '/pagos/equipo',    icon: 'wallet' },
-    { label: 'Compras terceros', route: '/pagos/terceros', icon: 'shopping-cart' },
-    { label: 'Reportes',       route: '/reportes',        icon: 'bar-chart' },
-    { label: 'Fact. x Cliente', route: '/facturacion-cliente', icon: 'pie-chart' },
-    { label: 'Configuración',  route: '/configuracion',   icon: 'settings',         section: 'Sistema' },
+  constructor() {
+    // Al recargar página, cargar empresas y permisos si hay sesión activa
+    if (this.auth.isAuthenticated()) {
+      this.empresaSvc.cargar();
+      if (!this.perm.loaded()) {
+        this.perm.cargar(this.auth.rol());
+      }
+    }
+  }
+
+  private allNavItems: NavItem[] = [
+    { label: 'Dashboard',      route: '/dashboard',       icon: 'layout-dashboard', section: 'Resumen', modulo: 'dashboard' },
+    { label: 'Pipeline',       route: '/pipeline',        icon: 'git-branch',       section: 'Comercial', modulo: 'pipeline' },
+    { label: 'Cotizaciones',   route: '/cotizaciones',    icon: 'file-text',        modulo: 'cotizaciones' },
+    { label: 'Clientes',       route: '/clientes',        icon: 'users',            modulo: 'clientes' },
+    { label: 'Proyectos',      route: '/proyectos',       icon: 'briefcase',        section: 'Operación', modulo: 'proyectos' },
+    { label: 'Equipo',         route: '/equipo',          icon: 'user-check',       modulo: 'equipo' },
+    { label: 'Certificaciones',route: '/certificaciones', icon: 'clipboard-check',  modulo: 'certificaciones' },
+    { label: 'Facturación',    route: '/facturacion',     icon: 'receipt',          section: 'Finanzas', modulo: 'facturacion' },
+    { label: 'Cobros',         route: '/pagos/cobros',    icon: 'trending-up',      modulo: 'pagos' },
+    { label: 'Pagos',          route: '/pagos/equipo',    icon: 'wallet',           modulo: 'pagos' },
+    { label: 'Compras terceros', route: '/pagos/terceros', icon: 'shopping-cart',   modulo: 'pagos' },
+    { label: 'Reportes',       route: '/reportes',        icon: 'bar-chart',        modulo: 'reportes' },
+    { label: 'Fact. x Cliente', route: '/facturacion-cliente', icon: 'pie-chart',   modulo: 'reportes' },
+    { label: 'Configuración',  route: '/configuracion',   icon: 'settings',         section: 'Sistema', modulo: 'configuracion' },
   ];
+
+  // Filtrar menú reactivamente según permisos
+  navItems = computed(() => {
+    // Leer señales explícitamente para que Angular detecte cambios
+    const admin = this.perm.isAdmin();
+    const perms = this.perm.permisos();
+    const loaded = this.perm.loaded();
+    
+    // Mientras no se cargan los permisos, Admin ve todo, otros ven solo dashboard
+    if (!loaded && !admin) {
+      return this.allNavItems.filter(i => i.modulo === 'dashboard');
+    }
+
+    return this.allNavItems.filter(item => {
+      if (!item.modulo) return true;
+      if (admin) return true;
+      const p = perms.find(x => x.Modulo === item.modulo);
+      return p?.PuedeVer ?? false;
+    });
+  });
 
   icon(name: string): string { return I[name] ?? ''; }
   toggleCollapse(): void     { this.collapsed.set(!this.collapsed()); }
+  
+  cerrarSesion() {
+    this.perm.clear();
+    this.empresaSvc.clear();
+    this.auth.logout();
+  }
 }

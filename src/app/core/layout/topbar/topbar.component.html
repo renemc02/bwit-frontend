@@ -24,9 +24,11 @@
       <span [innerHTML]="(theme.isDark() ? sunIcon : moonIcon) | safeHtml"></span>
     </button>
 
+    @if (perm.puedeVer('configuracion')) {
     <button class="tb-icon-btn" (click)="abrirConfig()" title="Configuración">
       <span [innerHTML]="settingsIcon | safeHtml"></span>
     </button>
+    }
 
     <button class="tb-icon-btn notif-btn" title="Notificaciones">
       <span [innerHTML]="bellIcon | safeHtml"></span>

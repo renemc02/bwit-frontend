@@ -458,6 +458,5 @@ export class CotizacionDetailComponent implements OnInit {
   }
 
   descargarPdf() {
-    console.log('Descargar PDF', this.c()?.Codigo);
   }
 }

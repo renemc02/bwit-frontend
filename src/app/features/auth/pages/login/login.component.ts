@@ -2,6 +2,8 @@ import { Component, signal, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { PermissionService } from '../../../../core/auth/permission.service';
+import { EmpresaService } from '../../../../core/services/empresa.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 
 @Component({
@@ -15,6 +17,8 @@ export class LoginComponent {
   private readonly auth   = inject(AuthService);
   private readonly router = inject(Router);
   private readonly notify = inject(NotificationService);
+  private readonly perm   = inject(PermissionService);
+  private readonly empSvc = inject(EmpresaService);
 
   email    = '';
   password = '';
@@ -30,6 +34,10 @@ export class LoginComponent {
     this.error.set('');
     this.auth.login({ Email: this.email, Password: this.password }).subscribe({
       next:  () => {
+        // Cargar empresas y permisos del rol
+        this.empSvc.cargar();
+        this.perm.cargar(this.auth.rol());
+        this.loading.set(false);
         if (this.auth.debeCambiarPassword()) {
           this.router.navigate(['/cambiar-password']);
         } else {

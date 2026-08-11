@@ -404,9 +404,11 @@
         <div class="form-row">
           <label>Tipo de proyecto</label>
           <select class="select" [(ngModel)]="cv.tipoProyecto" name="cv_tipo">
-            <option value="General">General</option>
-            <option value="Recurrente mensual">Recurrente mensual</option>
-            <option value="Por avances">Por avances</option>
+            <option value="General">General — Costo Fijo</option>
+            <option value="Recurrente mensual">Recurrente Mensual — Costo Variable / Hora</option>
+            <option value="Por avances">Proyecto por Avances — Costo Variable</option>
+            <option value="ManPower">ManPower — Asignación / Costo x Hora</option>
+            <option value="Staffing">Staffing</option>
           </select>
         </div>
         <div class="form-grid-2" style="margin-top:12px">

@@ -4,7 +4,6 @@ import { Router } from '@angular/router';
 import { tap, catchError, EMPTY } from 'rxjs';
 import { LoginRequest, LoginResponse } from './models/auth.models';
 import { TokenService } from './token.service';
-import { EmpresaService } from '../services/empresa.service';
 
 const LOGIN_URL   = '/api/auth/login';
 const REFRESH_URL = '/api/auth/refresh';
@@ -14,7 +13,6 @@ export class AuthService {
   private readonly http       = inject(HttpClient);
   private readonly router     = inject(Router);
   private readonly tokens     = inject(TokenService);
-  private readonly empresaSvc = inject(EmpresaService);
 
   private _user = signal<LoginResponse | null>(this.tokens.getUser());
   readonly debeCambiarPassword = () => !!this._user()?.DebeCambiarPassword;
@@ -30,9 +28,8 @@ export class AuthService {
   );
 
   constructor() {
-    // Restaurar empresa al recargar página
-    const user = this.tokens.getUser();
-    if (user) this.empresaSvc.cargar();
+    // No cargar nada aquí — se hace desde LoginComponent y SidebarComponent
+    // para evitar dependencia circular con HttpClient/Interceptor
   }
 
   login(req: LoginRequest) {
@@ -43,7 +40,6 @@ export class AuthService {
           if (res.IsSuccess && res.Data) {
             this.tokens.save(res.Data);
             this._user.set(res.Data);
-            this.empresaSvc.cargar();
           }
         })
       );
@@ -51,7 +47,6 @@ export class AuthService {
 
   logout(): void {
     this.tokens.clear();
-    this.empresaSvc.clear();
     this._user.set(null);
     this.router.navigate(['/login']);
   }
