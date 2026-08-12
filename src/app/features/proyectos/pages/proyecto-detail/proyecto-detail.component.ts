@@ -14,7 +14,7 @@ import { AdjuntoService } from '../../../../core/services/adjunto.service';
 import { AdendaService } from '../../services/adenda.service';
 import { ProyectoService } from '../../services/proyecto.service';
 
-type Tab = 'resumen' | 'certificaciones' | 'ordenes' | 'facturas' | 'equipo' | 'tercerizados' | 'adjuntos' | 'adendas';
+type Tab = 'resumen' | 'certificaciones' | 'ordenes' | 'facturas' | 'equipo' | 'tercerizados' | 'adjuntos' | 'adendas' | 'hitos';
 
 @Component({
   selector: 'bwit-proyecto-detail',
@@ -68,6 +68,8 @@ export class ProyectoDetailComponent implements OnInit {
 
   ngOnInit() {
     this.recargar();
+    // Cargar hitos para el panel de avance
+    setTimeout(() => this.cargarHitos(), 300);
     // Deep-link: /proyectos/{id}?tab=tercerizados
     const tabQP = this.route.snapshot.queryParamMap.get('tab');
     if (tabQP) setTimeout(() => this.onTabChange(tabQP as Tab), 400);
@@ -89,6 +91,9 @@ export class ProyectoDetailComponent implements OnInit {
     }
     if (t === 'tercerizados' && !this.terceriadosLoaded()) {
       this.cargarTercerizados();
+    }
+    if (t === 'hitos' && !this.hitosLoaded()) {
+      this.cargarHitos();
     }
   }
 
@@ -138,6 +143,123 @@ export class ProyectoDetailComponent implements OnInit {
   editandoProgreso  = signal(false);
   progresoPctEdit   = 0;
 
+  // ── Hitos ──
+  hitos = signal<any[]>([]);
+  hitosLoaded = signal(false);
+  hitoEdit: any = null;
+  hitoForm = { nombre: '', peso: 0, avance: 0 };
+  modalHito = signal(false);
+  hitoError = signal('');
+
+  // Indicadores de avance (computed)
+  avanceFisico = computed(() => {
+    const hs = this.hitos();
+    const totalPeso = hs.reduce((s, h) => s + (Number(h.Peso) || 0), 0);
+    if (totalPeso <= 0) return Number(this.p()?.ProgresoFisicoPct) || 0;
+    const ponderado = hs.reduce((s, h) => s + (Number(h.Peso) || 0) * (Number(h.Avance) || 0), 0);
+    return Math.round(ponderado / totalPeso);
+  });
+  avanceCertificado = computed(() => {
+    const monto = this.p()?.MontoTotal ?? 0;
+    const cert = Number(this.p()?.Certificado) || 0;
+    return monto > 0 ? Math.round((cert / monto) * 100) : 0;
+  });
+  avanceFacturado = computed(() => {
+    const monto = this.p()?.MontoTotal ?? 0;
+    const fact = Number(this.p()?.Facturado) || 0;
+    return monto > 0 ? Math.round((fact / monto) * 100) : 0;
+  });
+  avanceCobrado = computed(() => {
+    const monto = this.p()?.MontoTotal ?? 0;
+    const cobr = Number(this.p()?.Cobrado) || 0;
+    return monto > 0 ? Math.round((cobr / monto) * 100) : 0;
+  });
+  // Suma de pesos (para validar 100%)
+  pesoTotal = computed(() => this.hitos().reduce((s, h) => s + (Number(h.Peso) || 0), 0));
+  // Alerta de desfase físico vs facturado
+  gapFacturar = computed(() => {
+    const monto = this.p()?.MontoTotal ?? 0;
+    const fisicoMonto = monto * this.avanceFisico() / 100;
+    const facturado = Number(this.p()?.Facturado) || 0;
+    return Math.max(0, Math.round(fisicoMonto - facturado));
+  });
+
+  cargarHitos() {
+    const id = this.p()?.Id;
+    if (!id) return;
+    this.api.get<any>(`/api/proyectos/${id}/hitos`).subscribe({
+      next: (r: any) => { this.hitos.set(Array.isArray(r) ? r : (r?.data ?? [])); this.hitosLoaded.set(true); },
+      error: () => { this.hitos.set([]); this.hitosLoaded.set(true); }
+    });
+  }
+
+  abrirHito(h?: any) {
+    if (h) {
+      this.hitoEdit = h;
+      this.hitoForm = { nombre: h.Nombre, peso: h.Peso, avance: h.Avance };
+    } else {
+      this.hitoEdit = null;
+      this.hitoForm = { nombre: '', peso: 0, avance: 0 };
+    }
+    this.hitoError.set('');
+    this.modalHito.set(true);
+  }
+  cerrarHito() { this.modalHito.set(false); }
+
+  guardarHito() {
+    const id = this.p()?.Id;
+    if (!id) return;
+    if (!this.hitoForm.nombre.trim()) { this.hitoError.set('Ingresa el nombre del hito.'); return; }
+    if (this.hitoForm.peso <= 0) { this.hitoError.set('El peso debe ser mayor a 0.'); return; }
+    const body = { Nombre: this.hitoForm.nombre, Peso: Number(this.hitoForm.peso), Avance: Number(this.hitoForm.avance) };
+    const obs = this.hitoEdit
+      ? this.api.put<any>(`/api/proyectos/hitos/${this.hitoEdit.Id}`, body)
+      : this.api.post<any>(`/api/proyectos/${id}/hitos`, body);
+    obs.subscribe({
+      next: () => { this.cerrarHito(); this.cargarHitos(); this.recargar(); },
+      error: () => { this.hitoError.set('No se pudo guardar el hito.'); }
+    });
+  }
+
+  eliminarHito(h: any) {
+    this.confirm.eliminar(h.Nombre).then(ok => {
+      if (!ok) return;
+      this.api.delete<any>(`/api/proyectos/hitos/${h.Id}`).subscribe({
+        next: () => { this.cargarHitos(); this.recargar(); },
+        error: () => {}
+      });
+    });
+  }
+
+  moneda(m: string) { return m === 'USD' ? 'US$' : 'S/'; }
+
+  // ── Drag & drop hitos ──
+  dragIdx: number | null = null;
+  dragOverIdx: number | null = null;
+
+  onDragStart(i: number) { this.dragIdx = i; }
+  onDragOver(e: DragEvent, i: number) {
+    e.preventDefault();
+    if (this.dragIdx === null || this.dragIdx === i) return;
+    this.dragOverIdx = i;
+    // Reorder in place
+    const list = [...this.hitos()];
+    const [moved] = list.splice(this.dragIdx, 1);
+    list.splice(i, 0, moved);
+    this.hitos.set(list);
+    this.dragIdx = i;
+  }
+  onDragEnd() {
+    if (this.dragIdx === null) return;
+    this.dragIdx = null;
+    this.dragOverIdx = null;
+    // Persist new order to backend
+    const id = this.p()?.Id;
+    if (!id) return;
+    const ids = this.hitos().map(h => h.Id);
+    this.api.put<any>(`/api/proyectos/${id}/hitos/reordenar`, ids).subscribe();
+  }
+
   abrirProgreso() {
     this.progresoPctEdit = this.p()?.ProgresoPct ?? 0;
     this.editandoProgreso.set(true);
@@ -146,12 +268,18 @@ export class ProyectoDetailComponent implements OnInit {
   cancelarProgreso() { this.editandoProgreso.set(false); }
 
   recalcularProgreso() {
-    const certs = this.p()?.Certificaciones ?? [];
     const monto = this.p()?.MontoTotal ?? 0;
-    const aprobado = certs
+    if (monto <= 0) { this.progresoPctEdit = 0; return; }
+    // Certificaciones aprobadas
+    const certs = this.p()?.Certificaciones ?? [];
+    const certificado = certs
       .filter((c: any) => c.Estado === 'Aprobada')
       .reduce((s: number, c: any) => s + (Number(c.Monto) || 0), 0);
-    this.progresoPctEdit = monto > 0 ? Math.round((aprobado / monto) * 100) : 0;
+    // Facturado (ya calculado en el proyecto)
+    const facturado = Number(this.p()?.Facturado) || 0;
+    // Usar el mayor entre certificado y facturado
+    const avance = Math.max(certificado, facturado);
+    this.progresoPctEdit = Math.min(Math.round((avance / monto) * 100), 100);
   }
 
   guardarProgreso() {

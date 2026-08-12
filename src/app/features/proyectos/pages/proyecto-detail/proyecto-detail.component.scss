@@ -106,12 +106,19 @@
 
 /* ── Progreso inline ── */
 .progreso-inline { margin-top:8px; }
-.progreso-bar-wrap { height:4px; background:var(--border); border-radius:4px; overflow:hidden; margin-bottom:6px; }
-.progreso-bar-fill { height:100%; background:var(--primary); border-radius:4px; transition:width .3s ease; }
+.progreso-bar-wrap { height:6px; background:#e5e7eb; border-radius:4px; overflow:hidden; margin-bottom:6px; }
+.progreso-bar-fill { height:100%; border-radius:4px; transition:width .3s ease; }
 .progreso-row { display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .progreso-pct { font-size:12px; color:var(--text-muted); font-weight:600; }
 .progreso-edit-btn { background:none; border:none; cursor:pointer; color:var(--text-faint); padding:2px; line-height:1; opacity:.5; }
 .progreso-edit-btn:hover { opacity:1; color:var(--primary); }
+.progreso-link-btn {
+  display:inline-flex; align-items:center; gap:3px;
+  background:none; border:none; cursor:pointer;
+  color:var(--text-muted); font-size:11px; font-weight:500;
+  padding:2px 6px; border-radius:5px; transition:all .15s;
+}
+.progreso-link-btn:hover { background:var(--surface-2); color:var(--primary); }
 .progreso-edit-row { display:flex; align-items:center; gap:8px; flex:1; }
 .progreso-slider { flex:1; accent-color:var(--primary); cursor:pointer; }
 .progreso-pct-live { font-size:13px; font-weight:700; color:var(--primary); min-width:36px; }
@@ -126,3 +133,144 @@
   border-radius: 8px; padding: 9px 12px; font-size: 12.5px; margin-bottom: 14px;
 }
 .tc-cert-banner strong { font-weight: 700; }
+
+// ── Panel de avance multi-indicador ──
+.avance-bars { display: flex; flex-direction: column; gap: 12px; }
+.av-row { display: grid; grid-template-columns: 90px 1fr 46px 110px; align-items: center; gap: 12px; }
+.av-lbl { font-size: 12px; color: var(--text-secondary, #666); font-weight: 500; }
+.av-track { height: 10px; background: #e5e7eb; border-radius: 5px; overflow: hidden; }
+.av-fill { height: 100%; border-radius: 5px; transition: width .4s ease; min-width: 2px; }
+.av-pct { font-size: 13px; font-weight: 600; font-family: 'JetBrains Mono', monospace; text-align: right; }
+.av-monto { font-size: 11px; color: var(--text-muted, #999); font-family: 'JetBrains Mono', monospace; text-align: right; }
+.av-alert {
+  margin-top: 16px; padding: 10px 14px; font-size: 12px;
+  background: #fff3cd; color: #856404; border-radius: 8px;
+  display: flex; align-items: center; gap: 8px; line-height: 1.4;
+}
+.av-alert strong { font-weight: 700; }
+.badge-fisico {
+  font-size: 11px; font-weight: 500; padding: 3px 10px;
+  background: var(--surface-2, #eef2ff); color: var(--primary, #4f46e5);
+  border-radius: 12px;
+}
+@media (max-width: 640px) {
+  .av-row { grid-template-columns: 70px 1fr 40px; }
+  .av-monto { display: none; }
+}
+
+// ── Hitos action buttons ──
+.hito-action {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 6px; border: none;
+  background: transparent; cursor: pointer; color: var(--text-secondary, #888);
+  transition: all .15s;
+  &:hover { background: var(--surface-2, #f0f0f0); color: var(--primary); }
+  &.danger:hover { background: #fef2f2; color: var(--danger, #dc2626); }
+}
+
+// ── Hitos tab layout (mockup-style) ──
+.ht-layout { display: grid; grid-template-columns: 1fr 220px; gap: 16px; align-items: start; }
+.ht-main { min-width: 0; }
+.ht-card {
+  background: var(--surface-1, #fff); border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px; overflow: hidden;
+}
+.ht-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 18px; border-bottom: 1px solid var(--border, #e5e7eb);
+}
+.ht-title {
+  font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px;
+}
+.ht-labels {
+  display: grid; grid-template-columns: 28px 1fr 60px 60px 150px 60px;
+  gap: 8px; padding: 8px 18px; font-size: 10px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .4px; color: var(--text-faint, #aaa);
+}
+.ht-list { display: flex; flex-direction: column; gap: 0; }
+.ht-item {
+  display: grid; grid-template-columns: 28px 1fr 60px 60px 150px 60px;
+  gap: 8px; align-items: center; padding: 10px 18px;
+  border-bottom: 1px solid var(--border-light, rgba(0,0,0,.06));
+  transition: background .12s, opacity .2s;
+  cursor: grab;
+  &:hover { background: var(--surface-2, #f9fafb); }
+  &.ht-dragging { opacity: 0.5; }
+  &.ht-dragover { border-top: 2px solid var(--primary); }
+}
+.ht-grip {
+  color: var(--text-faint, #ccc); cursor: grab; display: flex; align-items: center;
+  &:active { cursor: grabbing; }
+}
+.ht-grip-ph { width: 28px; }
+.ht-name { font-size: 13px; font-weight: 500; }
+.ht-peso {
+  font-size: 12px; font-family: 'JetBrains Mono', monospace;
+  text-align: center; color: var(--text-secondary, #666);
+}
+.ht-avance {
+  font-size: 12px; font-family: 'JetBrains Mono', monospace;
+  text-align: center; font-weight: 500;
+  &.done { color: var(--success, #16a34a); }
+  &.pending { color: var(--text-faint, #aaa); }
+}
+.ht-prog { display: flex; align-items: center; gap: 6px; }
+.ht-bar {
+  flex: 1; height: 8px; background: #e5e7eb;
+  border-radius: 4px; overflow: hidden; min-width: 60px;
+}
+.ht-bar-fill {
+  height: 100%; border-radius: 4px; background: var(--primary);
+  transition: width .3s;
+  min-width: 2px;
+}
+.ht-bar-pct {
+  font-size: 11px; font-family: 'JetBrains Mono', monospace;
+  color: var(--text-secondary, #666); width: 30px; text-align: right;
+}
+.ht-actions { display: flex; gap: 2px; justify-content: center; }
+.ht-total {
+  display: grid; grid-template-columns: 28px 1fr 60px 60px 150px 60px;
+  gap: 8px; align-items: center; padding: 12px 18px;
+  border-top: 2px solid var(--border, #e5e7eb); font-weight: 600;
+}
+.ht-bar-total { background: #3b82f6 !important; }
+.ht-add {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: calc(100% - 36px); margin: 10px 18px;
+  padding: 10px; font-size: 12px; color: var(--text-faint, #aaa);
+  background: transparent; border: 1px dashed var(--border, #e5e7eb);
+  border-radius: 8px; cursor: pointer; transition: all .15s;
+  &:hover { background: var(--surface-2, #f9fafb); color: var(--text-secondary); border-color: var(--text-secondary); }
+}
+.ht-warn {
+  padding: 10px 18px; font-size: 12px; color: #856404;
+  background: #fff3cd; border-top: 1px solid var(--border);
+}
+.ht-empty {
+  text-align: center; padding: 24px; color: var(--text-faint, #aaa); font-size: 13px;
+}
+
+// ── Sidebar cards ──
+.ht-side { display: flex; flex-direction: column; gap: 12px; }
+.ht-side-card {
+  background: var(--surface-1, #fff); border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px; padding: 14px 16px;
+}
+.ht-side-title { font-size: 13px; font-weight: 600; margin-bottom: 10px; }
+.ht-side-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px; padding: 3px 0; color: var(--text-secondary, #666);
+}
+.ht-side-val {
+  font-family: 'JetBrains Mono', monospace; font-weight: 500;
+  font-size: 12px; color: var(--text-primary);
+}
+.ht-side-sep {
+  height: 1px; background: var(--border, #e5e7eb); margin: 8px 0;
+}
+
+@media (max-width: 768px) {
+  .ht-layout { grid-template-columns: 1fr; }
+  .ht-labels, .ht-item, .ht-total { grid-template-columns: 24px 1fr 45px 45px 90px 50px; }
+}

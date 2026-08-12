@@ -1,6 +1,6 @@
 {
   "/api": {
-    "target": "https://api-bwit-h5hkbjffbkdycdbr.canadacentral-01.azurewebsites.net",
+    "target": "http://localhost:63872",
     "secure": false,
     "changeOrigin": true
   }

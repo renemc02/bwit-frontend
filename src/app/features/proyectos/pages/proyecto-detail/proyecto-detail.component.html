@@ -30,31 +30,52 @@
     <div class="metric">
       <div class="m-label">Contrato Total</div>
       <div class="m-value"><span class="cur">{{ cur() }}</span>{{ p().MontoTotal | number:'1.2-2' }}</div>
-      <!-- Progreso inline con slider -->
+      <!-- Progreso inline -->
       <div class="progreso-inline">
-        <div class="progreso-bar-wrap">
-          <div class="progreso-bar-fill" [style.width.%]="p().ProgresoPct"></div>
-        </div>
-        <div class="progreso-row">
-          @if (!editandoProgreso()) {
-            <span class="progreso-pct">{{ p().ProgresoPct }}% avance</span>
-            <button class="progreso-edit-btn" title="Ajustar avance" (click)="abrirProgreso()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        @if (hitos().length) {
+          <!-- Con hitos: avance físico automático (solo lectura) -->
+          <div class="progreso-bar-wrap">
+            <div class="progreso-bar-fill" [style.width.%]="avanceFisico()" [style.background]="'#3b82f6'"></div>
+          </div>
+          <div class="progreso-row">
+            <span class="progreso-pct">{{ avanceFisico() }}% avance físico</span>
+            <button class="progreso-link-btn" (click)="onTabChange('hitos')" title="Gestionar hitos">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+              {{ hitos().length }} hito{{ hitos().length !== 1 ? 's' : '' }}
             </button>
-          } @else {
-            <div class="progreso-edit-row">
-              <input type="range" min="0" max="100" step="5"
-                     [(ngModel)]="progresoPctEdit" name="prog_slider"
-                     class="progreso-slider" />
-              <span class="progreso-pct-live">{{ progresoPctEdit }}%</span>
-            </div>
-            <div class="progreso-btns">
-              <button class="btn sm secondary" style="font-size:11px;padding:2px 8px" (click)="recalcularProgreso()" title="Calcular desde certificaciones aprobadas">↺ Auto</button>
-              <button class="btn sm secondary" style="font-size:11px;padding:2px 8px" (click)="cancelarProgreso()">✕</button>
-              <button class="btn sm primary" style="font-size:11px;padding:2px 8px" (click)="guardarProgreso()">✓ Guardar</button>
-            </div>
-          }
-        </div>
+          </div>
+        } @else {
+          <!-- Sin hitos: control manual -->
+          <div class="progreso-bar-wrap">
+            <div class="progreso-bar-fill" [style.width.%]="p().ProgresoPct"></div>
+          </div>
+          <div class="progreso-row">
+            @if (!editandoProgreso()) {
+              <span class="progreso-pct">{{ p().ProgresoPct }}% avance</span>
+              <div style="display:flex;gap:4px;align-items:center">
+                <button class="progreso-link-btn" (click)="onTabChange('hitos')" title="Definir hitos para cálculo automático">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  hitos
+                </button>
+                <button class="progreso-edit-btn" title="Ajustar avance manual" (click)="abrirProgreso()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+              </div>
+            } @else {
+              <div class="progreso-edit-row">
+                <input type="range" min="0" max="100" step="5"
+                       [(ngModel)]="progresoPctEdit" name="prog_slider"
+                       class="progreso-slider" />
+                <span class="progreso-pct-live">{{ progresoPctEdit }}%</span>
+              </div>
+              <div class="progreso-btns">
+                <button class="btn sm secondary" style="font-size:11px;padding:2px 8px" (click)="recalcularProgreso()" title="Calcular desde certificaciones/facturas">↺ Auto</button>
+                <button class="btn sm secondary" style="font-size:11px;padding:2px 8px" (click)="cancelarProgreso()">✕</button>
+                <button class="btn sm primary" style="font-size:11px;padding:2px 8px" (click)="guardarProgreso()">✓ Guardar</button>
+              </div>
+            }
+          </div>
+        }
       </div>
     </div>
     <div class="metric">
@@ -81,6 +102,7 @@
     <button class="tab" [class.active]="tab()==='ordenes'" (click)="onTabChange('ordenes')">Órdenes de compra</button>
     <button class="tab" [class.active]="tab()==='facturas'" (click)="onTabChange('facturas')">Facturas</button>
     <button class="tab" [class.active]="tab()==='equipo'" (click)="onTabChange('equipo')">Equipo <span class="tab-count">{{ p().Asignaciones.length }}</span></button>
+    <button class="tab" [class.active]="tab()==='hitos'" (click)="onTabChange('hitos')">Hitos <span class="tab-count">{{ hitos().length }}</span></button>
     <button class="tab" [class.active]="tab()==='tercerizados'" (click)="onTabChange('tercerizados')">Tercerizados</button>
     <button class="tab" [class.active]="tab()==='adjuntos'" (click)="onTabChange('adjuntos')">Adjuntos</button>
     <button class="tab" [class.active]="tab()==='adendas'" (click)="onTabChange('adendas')">Adendas <span class="tab-count">{{ adendas().length }}</span></button>
@@ -92,6 +114,50 @@
 
       @switch (tab()) {
         @case ('resumen') {
+          <!-- Panel de avance del proyecto -->
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-head" style="display:flex;justify-content:space-between;align-items:center">
+              <h3>Avance del proyecto</h3>
+              @if (hitos().length) {
+                <span class="badge-fisico">Físico calculado de {{ hitos().length }} hito{{ hitos().length !== 1 ? 's' : '' }}</span>
+              }
+            </div>
+            <div class="card-pad">
+              <div class="avance-bars">
+                <div class="av-row">
+                  <span class="av-lbl">Físico</span>
+                  <div class="av-track"><div class="av-fill" [style.width.%]="avanceFisico()" [style.background]="'#3b82f6'"></div></div>
+                  <span class="av-pct" style="color:#3b82f6">{{ avanceFisico() }}%</span>
+                  <span class="av-monto">{{ cur() }} {{ (p().MontoTotal * avanceFisico() / 100) | number:'1.0-0' }}</span>
+                </div>
+                <div class="av-row">
+                  <span class="av-lbl">Certificado</span>
+                  <div class="av-track"><div class="av-fill" [style.width.%]="avanceCertificado()" [style.background]="'#1D9E75'"></div></div>
+                  <span class="av-pct" style="color:#1D9E75">{{ avanceCertificado() }}%</span>
+                  <span class="av-monto">{{ cur() }} {{ p().Certificado | number:'1.0-0' }}</span>
+                </div>
+                <div class="av-row">
+                  <span class="av-lbl">Facturado</span>
+                  <div class="av-track"><div class="av-fill" [style.width.%]="avanceFacturado()" [style.background]="'#EF9F27'"></div></div>
+                  <span class="av-pct" style="color:#BA7517">{{ avanceFacturado() }}%</span>
+                  <span class="av-monto">{{ cur() }} {{ p().Facturado | number:'1.0-0' }}</span>
+                </div>
+                <div class="av-row">
+                  <span class="av-lbl">Cobrado</span>
+                  <div class="av-track"><div class="av-fill" [style.width.%]="avanceCobrado()" [style.background]="'#97C459'"></div></div>
+                  <span class="av-pct" style="color:#639922">{{ avanceCobrado() }}%</span>
+                  <span class="av-monto">{{ cur() }} {{ p().Cobrado | number:'1.0-0' }}</span>
+                </div>
+              </div>
+              @if (gapFacturar() > 0) {
+                <div class="av-alert">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;flex-shrink:0"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  <span><strong>{{ avanceFisico() }}%</strong> ejecutado vs <strong>{{ avanceFacturado() }}%</strong> facturado — {{ cur() }} {{ gapFacturar() | number:'1.2-2' }} pendiente de facturar</span>
+                </div>
+              }
+            </div>
+          </div>
+
           <!-- Flujo del proyecto -->
           <div class="card" style="margin-bottom:16px">
             <div class="card-head"><h3>Flujo del proyecto</h3></div>
@@ -340,6 +406,114 @@
                 </tbody>
               </table>
             }
+          </div>
+        }
+
+        @case ('hitos') {
+          <div class="ht-layout">
+            <!-- Columna principal: hitos -->
+            <div class="ht-main">
+              <div class="ht-card">
+                <div class="ht-header">
+                  <div class="ht-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--primary)"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                    Hitos del proyecto
+                  </div>
+                  <button class="btn sm primary" (click)="abrirHito()">+ Agregar hito</button>
+                </div>
+
+                @if (!hitosLoaded()) {
+                  <div class="ht-empty">Cargando hitos…</div>
+                } @else if (!hitos().length) {
+                  <div class="ht-empty" style="padding:40px 20px">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:36px;height:36px;color:var(--text-faint);margin-bottom:12px"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+                    <p style="font-size:14px;font-weight:500;margin:0 0 4px">Aún no hay hitos definidos</p>
+                    <p class="muted" style="font-size:12px;margin:0 0 16px">Divide el proyecto en actividades con peso para calcular el avance físico automáticamente.</p>
+                    <button class="btn sm primary" (click)="abrirHito()">+ Agregar primer hito</button>
+                  </div>
+                } @else {
+                  <!-- Header labels -->
+                  <div class="ht-labels">
+                    <span></span>
+                    <span>HITO / ACTIVIDAD</span>
+                    <span>PESO</span>
+                    <span>AVANCE</span>
+                    <span>PROGRESO</span>
+                    <span></span>
+                  </div>
+                  <!-- Hito items -->
+                  <div class="ht-list">
+                    @for (h of hitos(); track h.Id; let i = $index) {
+                      <div class="ht-item"
+                           draggable="true"
+                           (dragstart)="onDragStart(i)"
+                           (dragover)="onDragOver($event, i)"
+                           (dragend)="onDragEnd()"
+                           [class.ht-dragging]="dragIdx === i"
+                           [class.ht-dragover]="dragOverIdx === i && dragIdx !== i">
+                        <div class="ht-grip" title="Arrastrar para reordenar">
+                          <svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+                        </div>
+                        <div class="ht-name">{{ h.Nombre }}</div>
+                        <div class="ht-peso">{{ h.Peso }}%</div>
+                        <div class="ht-avance" [class.done]="h.Avance >= 100" [class.pending]="h.Avance === 0">{{ h.Avance }}%</div>
+                        <div class="ht-prog">
+                          <div class="ht-bar"><div class="ht-bar-fill" [style.width.%]="h.Avance" [style.background]="h.Avance >= 100 ? '#16a34a' : h.Avance >= 60 ? '#3b82f6' : h.Avance >= 30 ? '#EF9F27' : '#ef4444'"></div></div>
+                          <span class="ht-bar-pct">{{ h.Avance }}%</span>
+                        </div>
+                        <div class="ht-actions">
+                          <button class="hito-action" (click)="abrirHito(h)" title="Editar">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          </button>
+                          <button class="hito-action danger" (click)="eliminarHito(h)" title="Eliminar">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                  <!-- Total row -->
+                  <div class="ht-total">
+                    <div class="ht-grip-ph"></div>
+                    <div class="ht-name" style="color:var(--primary)">Avance físico</div>
+                    <div class="ht-peso" [style.color]="pesoTotal() === 100 ? 'var(--text-primary)' : 'var(--danger)'">{{ pesoTotal() }}%</div>
+                    <div class="ht-avance" style="color:var(--primary);font-weight:600">{{ avanceFisico() }}%</div>
+                    <div class="ht-prog">
+                      <div class="ht-bar"><div class="ht-bar-fill ht-bar-total" [style.width.%]="avanceFisico()"></div></div>
+                      <span class="ht-bar-pct" style="color:var(--primary);font-weight:600">{{ avanceFisico() }}%</span>
+                    </div>
+                    <div class="ht-actions"></div>
+                  </div>
+                  <!-- Add button -->
+                  <button class="ht-add" (click)="abrirHito()">+ Agregar hito o actividad</button>
+                  <!-- Peso warning -->
+                  @if (pesoTotal() !== 100 && hitos().length) {
+                    <div class="ht-warn">⚠️ Los pesos suman {{ pesoTotal() }}%. Idealmente deben sumar 100%.</div>
+                  }
+                }
+              </div>
+            </div>
+
+            <!-- Sidebar: indicadores -->
+            <div class="ht-side">
+              <div class="ht-side-card">
+                <div class="ht-side-title">Indicadores financieros</div>
+                <div class="ht-side-row"><span>Certificado</span><span class="ht-side-val" style="color:#1D9E75">{{ avanceCertificado() }}%</span></div>
+                <div class="ht-side-row"><span>Facturado</span><span class="ht-side-val" style="color:#BA7517">{{ avanceFacturado() }}%</span></div>
+                <div class="ht-side-row"><span>Cobrado</span><span class="ht-side-val" style="color:#639922">{{ avanceCobrado() }}%</span></div>
+                <div class="ht-side-sep"></div>
+                <div class="ht-side-row"><span>Por certificar</span><span class="ht-side-val">{{ cur() }} {{ (p().MontoTotal - (p().Certificado || 0)) | number:'1.0-0' }}</span></div>
+                <div class="ht-side-row"><span>Por facturar</span><span class="ht-side-val" style="color:#BA7517">{{ cur() }} {{ (p().MontoTotal - p().Facturado) | number:'1.0-0' }}</span></div>
+                <div class="ht-side-row"><span>Por cobrar</span><span class="ht-side-val" style="color:var(--danger)">{{ cur() }} {{ (p().Facturado - p().Cobrado) | number:'1.0-0' }}</span></div>
+              </div>
+              <div class="ht-side-card">
+                <div class="ht-side-title">Cliente</div>
+                <div style="font-size:12px">{{ p().Cliente }}</div>
+                @if (p().ClienteRuc) {
+                  <div class="muted" style="font-size:11px;margin-top:2px">RUC {{ p().ClienteRuc }}</div>
+                }
+              </div>
+            </div>
           </div>
         }
 
@@ -1412,6 +1586,42 @@
       </div>
       <div class="modal-footer">
         <button class="btn secondary" (click)="modalCertTerc.set(false)">Cerrar</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal Hito ═══ -->
+@if (modalHito()) {
+  <div class="modal-backdrop" (click)="cerrarHito()">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:480px">
+      <div class="modal-header">
+        <h2>{{ hitoEdit ? 'Editar hito' : 'Nuevo hito' }}</h2>
+        <button class="icon-btn" (click)="cerrarHito()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <label>Nombre del hito <span class="req">*</span></label>
+          <input class="input" type="text" [(ngModel)]="hitoForm.nombre" name="h_nombre" placeholder="Ej. Configuración de infraestructura" />
+        </div>
+        <div class="form-grid-2" style="margin-top:12px">
+          <div class="form-row">
+            <label>Peso (%) <span class="req">*</span></label>
+            <input class="input" type="number" [(ngModel)]="hitoForm.peso" name="h_peso" min="0" max="100" step="1" />
+          </div>
+          <div class="form-row">
+            <label>Avance (%)</label>
+            <input class="input" type="number" [(ngModel)]="hitoForm.avance" name="h_avance" min="0" max="100" step="1" />
+          </div>
+        </div>
+        <p class="muted" style="font-size:11px;margin-top:8px">El peso representa qué tan importante es este hito respecto al total del proyecto. El avance es cuánto se ha completado.</p>
+        @if (hitoError()) { <div class="error-msg" style="margin-top:12px">{{ hitoError() }}</div> }
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="cerrarHito()">Cancelar</button>
+        <button class="btn primary" (click)="guardarHito()">{{ hitoEdit ? 'Guardar cambios' : 'Crear hito' }}</button>
       </div>
     </div>
   </div>
