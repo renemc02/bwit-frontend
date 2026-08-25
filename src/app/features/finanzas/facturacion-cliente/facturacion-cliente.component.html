@@ -29,27 +29,50 @@
 
   <!-- KPIs -->
   <div class="fc-kpis">
-    <div class="kpi-card">
-      <div class="kpi-label">Facturado PEN</div>
+    <div class="kpi-card kpi-facturado">
+      <div class="kpi-label-row">
+        <div class="kpi-label">Facturado</div>
+        @if (variacionPct() !== null) {
+          <span class="kpi-variacion" [class.up]="variacionPct()! >= 0" [class.down]="variacionPct()! < 0">
+            {{ variacionPct()! >= 0 ? '↑' : '↓' }} {{ (variacionPct()! >= 0 ? variacionPct()! : -variacionPct()!) | number:'1.1-1' }}%
+          </span>
+        }
+      </div>
       <div class="kpi-value">S/ {{ totalPEN() | number:'1.2-2' }}</div>
+      <div class="kpi-sub">{{ facturasPEN() }} facturas</div>
+      <div class="kpi-sep"></div>
+      <div class="kpi-value2">$ {{ totalUSD() | number:'1.2-2' }}</div>
+      <div class="kpi-sub2"><span class="kpi-pill">{{ facturasUSD() }} facturas</span></div>
     </div>
-    <div class="kpi-card accent">
-      <div class="kpi-label">Facturado USD</div>
-      <div class="kpi-value">US$ {{ totalUSD() | number:'1.2-2' }}</div>
+    <div class="kpi-card kpi-cobrado">
+      <div class="kpi-label">Cobro</div>
+      <div class="kpi-value">S/ {{ cobradoPEN() | number:'1.2-2' }}</div>
+      <div class="kpi-sub">{{ factCobPEN() }} facturas</div>
+      <div class="kpi-sep"></div>
+      <div class="kpi-value2">$ {{ cobradoUSD() | number:'1.2-2' }}</div>
+      <div class="kpi-sub2"><span class="kpi-pill">{{ factCobUSD() }} facturas</span></div>
+      <div class="kpi-bar"><div class="kpi-bar-fill" [style.width.%]="pctCobrado()"></div></div>
+      <div class="kpi-sub3">{{ pctCobrado() }}% del total</div>
     </div>
-    <div class="kpi-card success">
-      <div class="kpi-label">Cobrado</div>
-      <div class="kpi-value">S/ {{ totalCobrado() | number:'1.2-2' }}</div>
-      <div class="kpi-sub">{{ pctCobrado() }}% del total</div>
+    <div class="kpi-card kpi-porcobrar">
+      <div class="kpi-label">Saldo</div>
+      <div class="kpi-value">S/ {{ porCobrarPEN() | number:'1.2-2' }}</div>
+      <div class="kpi-sub">{{ factPendPEN() }} facturas</div>
+      <div class="kpi-sep"></div>
+      <div class="kpi-value2">$ {{ porCobrarUSD() | number:'1.2-2' }}</div>
+      <div class="kpi-sub2"><span class="kpi-pill">{{ factPendUSD() }} facturas</span></div>
+      <div class="kpi-bar"><div class="kpi-bar-fill" [style.width.%]="100 - pctCobrado()"></div></div>
+      <div class="kpi-sub3">{{ clientesConSaldo() }} clientes con saldo</div>
     </div>
-    <div class="kpi-card warning">
-      <div class="kpi-label">Por cobrar</div>
-      <div class="kpi-value">S/ {{ totalPorCobrar() | number:'1.2-2' }}</div>
+    <div class="kpi-card kpi-vencido">
+      <div class="kpi-label">Vencidas</div>
+      <div class="kpi-value">S/ {{ montoVencido() | number:'1.2-2' }}</div>
+      <div class="kpi-sub">{{ facturasVencidas() }} facturas @if (facturasVencidas() > 0) { · prom. {{ diasVencidoPromedio() }} días }</div>
     </div>
-    <div class="kpi-card neutral">
-      <div class="kpi-label">Clientes</div>
-      <div class="kpi-value">{{ clientesFiltrados().length }}</div>
-      <div class="kpi-sub">{{ totalFacturas() }} facturas</div>
+    <div class="kpi-card kpi-porvencer">
+      <div class="kpi-label">Por vencer (15d)</div>
+      <div class="kpi-value">S/ {{ montoPorVencer15d() | number:'1.2-2' }}</div>
+      <div class="kpi-sub">{{ facturasPorVencer15d() }} facturas</div>
     </div>
   </div>
 
@@ -65,8 +88,6 @@
           <th class="num">Cobrado</th>
           <th class="num">Por cobrar</th>
           <th class="num">% Fact.</th>
-          <th class="num">USD</th>
-          <th style="width:140px">Distribución</th>
         </tr>
       </thead>
       <tbody>
@@ -79,22 +100,28 @@
               <div class="fc-cliente-name">{{ c.Cliente }}</div>
             </td>
             <td class="num">{{ c.CantidadFacturas }}</td>
-            <td class="num mono strong">S/ {{ c.MontoFacturadoPEN | number:'1.2-2' }}</td>
-            <td class="num mono fc-cobrado">S/ {{ c.MontoCobrado | number:'1.2-2' }}</td>
-            <td class="num mono" [class.fc-pendiente]="c.MontoPorCobrar > 0">
-              S/ {{ c.MontoPorCobrar | number:'1.2-2' }}
-            </td>
-            <td class="num mono">{{ c.PctFacturacion | number:'1.1-1' }}%</td>
-            <td class="num mono">
+            <td class="num mono strong">
+              <div>S/ {{ c.MontoFacturadoPEN | number:'1.2-2' }}</div>
               @if (c.MontoFacturadoUSD > 0) {
-                <span class="fc-usd">$ {{ c.MontoFacturadoUSD | number:'1.2-2' }}</span>
-              } @else {
-                <span class="muted">—</span>
+                <div class="fc-usd-line">$ {{ c.MontoFacturadoUSD | number:'1.2-2' }}</div>
               }
             </td>
-            <td>
-              <div class="fc-bar-bg">
-                <div class="fc-bar-fill" [style.width.%]="(c.MontoFacturadoTotal / maxMonto()) * 100"></div>
+            <td class="num mono fc-cobrado">
+              <div>S/ {{ c.CobradoPEN | number:'1.2-2' }}</div>
+              @if (c.CobradoUSD > 0) {
+                <div class="fc-usd-line">$ {{ c.CobradoUSD | number:'1.2-2' }}</div>
+              }
+            </td>
+            <td class="num mono" [class.fc-pendiente]="c.PorCobrarPEN > 0">
+              <div>S/ {{ c.PorCobrarPEN | number:'1.2-2' }}</div>
+              @if (c.PorCobrarUSD > 0) {
+                <div class="fc-usd-line">$ {{ c.PorCobrarUSD | number:'1.2-2' }}</div>
+              }
+            </td>
+            <td class="num">
+              <div class="fc-pct-wrap">
+                <div class="fc-pct-bar"><div class="fc-pct-fill" [style.width.%]="c.PctFacturacion"></div></div>
+                <span class="mono fc-pct-label">{{ c.PctFacturacion | number:'1.1-1' }}%</span>
               </div>
             </td>
           </tr>
@@ -102,7 +129,7 @@
           <!-- Detalle expandido -->
           @if (expandido() === c.ClienteId) {
             <tr class="fc-detail-row">
-              <td colspan="9">
+              <td colspan="7">
                 <div class="fc-detail-box">
                   <div class="fc-detail-header">
                     <span>Facturas de <strong>{{ c.Cliente }}</strong> — agrupadas por proyecto</span>
@@ -115,14 +142,19 @@
                       <div class="fc-proyecto-group">
                         <div class="fc-proyecto-header">
                           <div class="fc-proyecto-info">
-                            <a class="sub-link" [routerLink]="['/proyectos']">{{ pry.ProyectoCodigo }}</a>
-                            <span class="fc-proyecto-nombre">{{ pry.ProyectoNombre }}</span>
+                            <div class="fc-proyecto-codigo-row">
+                              <a class="sub-link" [routerLink]="['/proyectos']">{{ pry.ProyectoCodigo }}</a>
+                            </div>
+                            <div class="fc-proyecto-nombre">{{ pry.ProyectoNombre }}</div>
+                            @if (pry.ProyectoTipo) {
+                              <span class="fc-proyecto-badge">{{ pry.ProyectoTipo }}</span>
+                            }
                           </div>
                           <div class="fc-proyecto-totals">
                             <span class="fc-pry-total">{{ moneda(pry.facturas[0]?.Moneda || 'PEN') }} {{ pry.totalFacturado | number:'1.2-2' }}</span>
-                            <span class="fc-pry-cobrado">cobrado: {{ moneda(pry.facturas[0]?.Moneda || 'PEN') }} {{ pry.totalCobrado | number:'1.2-2' }}</span>
+                            <span class="fc-pry-cobrado">cobrado {{ moneda(pry.facturas[0]?.Moneda || 'PEN') }} {{ pry.totalCobrado | number:'1.2-2' }}</span>
                             @if (pry.totalSaldo > 0) {
-                              <span class="fc-pry-saldo">saldo: {{ moneda(pry.facturas[0]?.Moneda || 'PEN') }} {{ pry.totalSaldo | number:'1.2-2' }}</span>
+                              <span class="fc-pry-saldo">saldo {{ moneda(pry.facturas[0]?.Moneda || 'PEN') }} {{ pry.totalSaldo | number:'1.2-2' }}</span>
                             }
                           </div>
                         </div>
@@ -143,19 +175,19 @@
                           <tbody>
                             @for (d of pry.facturas; track d.Id) {
                               <tr>
-                                <td class="mono" style="font-weight:500;font-size:12px">{{ d.Codigo }}</td>
-                                <td class="muted" style="font-size:11px">{{ d.PeriodoServicio || '—' }}</td>
-                                <td class="muted" style="font-size:11px">{{ d.FechaEmision | date:'dd/MM/yy' }}</td>
-                                <td style="font-size:11px" [class.fc-vencido]="d.DiasVencido > 0">
+                                <td class="mono fc-dt-codigo">{{ d.Codigo }}</td>
+                                <td class="fc-dt-periodo">{{ d.PeriodoServicio || '—' }}</td>
+                                <td class="muted fc-dt-fecha">{{ d.FechaEmision | date:'dd/MM/yy' }}</td>
+                                <td class="fc-dt-fecha" [class.fc-vencido]="d.DiasVencido > 0">
                                   {{ d.FechaVencimiento | date:'dd/MM/yy' }}
                                   @if (d.DiasVencido > 0) {
-                                    <span class="fc-dias-badge">{{ d.DiasVencido }}d</span>
+                                    <span class="fc-dias-badge">⚠ {{ d.DiasVencido }}d</span>
                                   }
                                 </td>
-                                <td class="muted" style="font-size:10px">{{ d.CondicionPago || '—' }}</td>
-                                <td class="num mono" style="font-size:12px;font-weight:500">{{ moneda(d.Moneda) }} {{ d.Total | number:'1.2-2' }}</td>
-                                <td class="num mono fc-cobrado" style="font-size:11px">{{ moneda(d.Moneda) }} {{ d.Cobrado | number:'1.2-2' }}</td>
-                                <td class="num mono" style="font-size:11px" [class.fc-pendiente]="d.Saldo > 0" [class.fc-cobrado]="d.Saldo === 0">
+                                <td class="muted fc-dt-condicion">{{ d.CondicionPago || '—' }}</td>
+                                <td class="num mono fc-dt-total">{{ moneda(d.Moneda) }} {{ d.Total | number:'1.2-2' }}</td>
+                                <td class="num mono fc-cobrado fc-dt-cobrado">{{ moneda(d.Moneda) }} {{ d.Cobrado | number:'1.2-2' }}</td>
+                                <td class="num mono fc-dt-saldo" [class.fc-pendiente]="d.Saldo > 0" [class.muted]="d.Saldo === 0">
                                   {{ moneda(d.Moneda) }} {{ d.Saldo | number:'1.2-2' }}
                                 </td>
                                 <td>
@@ -183,12 +215,25 @@
             <td></td>
             <td class="strong">TOTAL</td>
             <td class="num strong">{{ totalFacturas() }}</td>
-            <td class="num mono strong">S/ {{ totalPEN() | number:'1.2-2' }}</td>
-            <td class="num mono fc-cobrado strong">S/ {{ totalCobrado() | number:'1.2-2' }}</td>
-            <td class="num mono strong" [class.fc-pendiente]="totalPorCobrar() > 0">S/ {{ totalPorCobrar() | number:'1.2-2' }}</td>
+            <td class="num mono strong">
+              <div>S/ {{ totalPEN() | number:'1.2-2' }}</div>
+              @if (totalUSD() > 0) {
+                <div class="fc-usd-line">$ {{ totalUSD() | number:'1.2-2' }}</div>
+              }
+            </td>
+            <td class="num mono fc-cobrado strong">
+              <div>S/ {{ cobradoPEN() | number:'1.2-2' }}</div>
+              @if (cobradoUSD() > 0) {
+                <div class="fc-usd-line">$ {{ cobradoUSD() | number:'1.2-2' }}</div>
+              }
+            </td>
+            <td class="num mono strong" [class.fc-pendiente]="porCobrarPEN() > 0">
+              <div>S/ {{ porCobrarPEN() | number:'1.2-2' }}</div>
+              @if (porCobrarUSD() > 0) {
+                <div class="fc-usd-line">$ {{ porCobrarUSD() | number:'1.2-2' }}</div>
+              }
+            </td>
             <td class="num mono strong">100%</td>
-            <td class="num mono strong">$ {{ totalUSD() | number:'1.2-2' }}</td>
-            <td></td>
           </tr>
         </tfoot>
       }

@@ -44,12 +44,45 @@ export class FacturacionClienteComponent implements OnInit {
   // KPIs
   totalPEN     = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.MontoFacturadoPEN || 0), 0));
   totalUSD     = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.MontoFacturadoUSD || 0), 0));
-  totalCobrado = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.MontoCobrado || 0), 0));
-  totalPorCobrar = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.MontoPorCobrar || 0), 0));
+  facturasPEN  = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.FacturasPEN || 0), 0));
+  facturasUSD  = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.FacturasUSD || 0), 0));
+  cobradoPEN   = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.CobradoPEN || 0), 0));
+  cobradoUSD   = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.CobradoUSD || 0), 0));
+  factCobPEN   = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.FacturasCobPEN || 0), 0));
+  factCobUSD   = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.FacturasCobUSD || 0), 0));
+  porCobrarPEN = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.PorCobrarPEN || 0), 0));
+  porCobrarUSD = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.PorCobrarUSD || 0), 0));
+  factPendPEN  = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.FacturasPendPEN || 0), 0));
+  factPendUSD  = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.FacturasPendUSD || 0), 0));
+  totalCobrado = computed(() => this.cobradoPEN() + this.cobradoUSD());
+  totalPorCobrar = computed(() => this.porCobrarPEN() + this.porCobrarUSD());
   totalFacturas  = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.CantidadFacturas || 0), 0));
+  clientesConSaldo = computed(() => this.clientesFiltrados().filter(c => (c.MontoPorCobrar || 0) > 0).length);
   pctCobrado = computed(() => {
     const total = this.totalPEN() + this.totalUSD();
     return total > 0 ? Math.round(this.totalCobrado() / total * 100) : 0;
+  });
+
+  // Vencidas
+  montoVencido      = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.MontoVencido || 0), 0));
+  facturasVencidas  = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.FacturasVencidas || 0), 0));
+  private diasVencidoSuma = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.DiasVencidoSuma || 0), 0));
+  diasVencidoPromedio = computed(() => {
+    const n = this.facturasVencidas();
+    return n > 0 ? Math.round(this.diasVencidoSuma() / n) : 0;
+  });
+
+  // Por vencer (próximos 15 días)
+  montoPorVencer15d     = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.MontoPorVencer15d || 0), 0));
+  facturasPorVencer15d  = computed(() => this.clientesFiltrados().reduce((s, c) => s + (c.FacturasPorVencer15d || 0), 0));
+
+  // Comparación vs periodo anterior
+  periodoAnteriorMonto = signal<number | null>(null);
+  variacionPct = computed(() => {
+    const prev = this.periodoAnteriorMonto();
+    if (prev === null || prev === 0) return null;
+    const actual = this.totalPEN() + this.totalUSD();
+    return Math.round(((actual - prev) / prev) * 1000) / 10;
   });
 
   // Filtro por búsqueda
@@ -108,6 +141,25 @@ export class FacturacionClienteComponent implements OnInit {
       next: (r: any) => { this.clientes.set(r ?? []); this.loading.set(false); },
       error: () => { this.clientes.set([]); this.loading.set(false); }
     });
+    this.cargarPeriodoAnterior();
+  }
+
+  private cargarPeriodoAnterior() {
+    if (!this.fechaDesde || !this.fechaHasta) { this.periodoAnteriorMonto.set(null); return; }
+    const d1 = new Date(this.fechaDesde);
+    const d2 = new Date(this.fechaHasta);
+    const dias = Math.round((d2.getTime() - d1.getTime()) / 86400000) + 1;
+    const prevHasta = new Date(d1); prevHasta.setDate(prevHasta.getDate() - 1);
+    const prevDesde = new Date(prevHasta); prevDesde.setDate(prevDesde.getDate() - dias + 1);
+    const qs = `?desde=${this.fmt(prevDesde)}&hasta=${this.fmt(prevHasta)}`;
+    this.api.get<any>(`/api/finanzas/bi/facturacion-cliente${qs}`).subscribe({
+      next: (r: any) => {
+        const arr = r ?? [];
+        const total = arr.reduce((s: number, c: any) => s + (c.MontoFacturadoPEN || 0) + (c.MontoFacturadoUSD || 0), 0);
+        this.periodoAnteriorMonto.set(total);
+      },
+      error: () => this.periodoAnteriorMonto.set(null)
+    });
   }
 
   expandir(c: any) {
@@ -138,6 +190,7 @@ export class FacturacionClienteComponent implements OnInit {
         map.set(key, {
           ProyectoCodigo: f.ProyectoCodigo,
           ProyectoNombre: f.ProyectoNombre,
+          ProyectoTipo: f.ProyectoTipo,
           facturas: [],
           totalFacturado: 0,
           totalCobrado: 0,

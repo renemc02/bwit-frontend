@@ -1,0 +1,274 @@
+<bwit-topbar title="Cobranza por Cliente" />
+
+<div class="cb-page">
+
+  <!-- Fila superior: pestañas de vista a la izquierda, filtro + buscador a la derecha -->
+  <div class="cb-top-row">
+    <div class="cb-tabs-row">
+      <button class="cb-tab-btn" [class.active]="vista() === 'cliente'" (click)="cambiarVista('cliente')">Por cliente</button>
+      <button class="cb-tab-btn" [class.active]="vista() === 'facturas'" (click)="cambiarVista('facturas')">Todas las facturas</button>
+    </div>
+
+    <div class="cb-top-row-right">
+      <div class="cb-toggle-row">
+        <button class="cb-toggle-btn" [class.active]="soloPendientes()" (click)="cambiarFiltro(true)">Solo pendientes</button>
+        <button class="cb-toggle-btn" [class.active]="!soloPendientes()" (click)="cambiarFiltro(false)">Todas las facturas</button>
+      </div>
+      <div class="cb-search-box">
+        <input class="input-sm" [(ngModel)]="busqueda" (ngModelChange)="onBusquedaChange()"
+               [placeholder]="vista() === 'facturas' ? 'Buscar cliente o factura...' : 'Buscar cliente...'" />
+      </div>
+    </div>
+  </div>
+
+  @if (vista() === 'facturas') {
+    <!-- ═══ Vista plana: todas las facturas, sin agrupar, paginada ═══ -->
+    <div class="cb-table-wrap">
+      @if (facturasCargando()) {
+        <ui-loading />
+      } @else {
+        <table class="cb-table">
+          <thead>
+            <tr>
+              <th>Factura</th>
+              <th>Cliente</th>
+              <th>Proyecto</th>
+              <th>Emisión</th>
+              <th>Vence</th>
+              <th class="num">Total</th>
+              <th class="num">Saldo</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (f of facturasLista(); track f.Id) {
+              <tr>
+                <td class="mono cb-dt-codigo">{{ formatoFactura(f.Codigo) }}</td>
+                <td class="cb-cliente-name">{{ f.Cliente }}</td>
+                <td class="cb-dt-proyecto"><a class="sub-link" [routerLink]="['/proyectos']">{{ f.ProyectoCodigo }}</a></td>
+                <td class="cb-dt-fecha">{{ f.FechaEmision | date:'dd/MM/yy' }}</td>
+                <td class="cb-dt-fecha" [class]="tramoClase(f.DiasVencido)">
+                  {{ f.FechaVencimiento | date:'dd/MM/yy' }}
+                  @if (f.DiasVencido > 0 && f.Saldo > 0) {
+                    <span class="cb-dias-badge">⚠ {{ f.DiasVencido }}d</span>
+                  }
+                </td>
+                <td class="num mono cb-dt-total">{{ moneda(f.Moneda) }} {{ f.Total | number:'1.2-2' }}</td>
+                <td class="num mono cb-dt-saldo">{{ moneda(f.Moneda) }} {{ f.Saldo | number:'1.2-2' }}</td>
+                <td><span class="badge sm" [class]="f.Estado | badge"><span class="dot"></span>{{ f.Estado }}</span></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        @if (!facturasLista().length) {
+          <div class="cb-empty">No hay facturas para mostrar</div>
+        }
+
+        @if (facturasTotal() > 0) {
+          <div class="cb-pagination">
+            <span class="cb-pag-info">
+              Mostrando {{ ((facturasPagina() - 1) * facturasPageSize) + 1 }}–{{ Math.min(facturasPagina() * facturasPageSize, facturasTotal()) }}
+              de {{ facturasTotal() }} facturas
+            </span>
+            <div class="cb-pag-controls">
+              <button class="cb-pag-btn" [disabled]="facturasPagina() === 1" (click)="irAPagina(facturasPagina() - 1)">‹ Anterior</button>
+              <span class="cb-pag-num">Página {{ facturasPagina() }} de {{ facturasTotalPaginas() }}</span>
+              <button class="cb-pag-btn" [disabled]="facturasPagina() >= facturasTotalPaginas()" (click)="irAPagina(facturasPagina() + 1)">Siguiente ›</button>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  } @else if (loading()) {
+    <ui-loading />
+  } @else {
+
+    <!-- KPIs -->
+    <div class="cb-kpis">
+      <div class="kpi-card kpi-pendiente">
+        <div class="kpi-label">Pendiente</div>
+        <div class="kpi-value">S/ {{ totalPendientePEN() | number:'1.2-2' }}</div>
+        @if (totalPendienteUSD() > 0) {
+          <div class="kpi-value2">$ {{ totalPendienteUSD() | number:'1.2-2' }}</div>
+        }
+        <div class="kpi-sub">{{ totalFacturas() }} facturas · {{ clientesConDeuda() }} clientes</div>
+      </div>
+      <div class="kpi-card kpi-vencido">
+        <div class="kpi-label">Vencido</div>
+        <div class="kpi-value">S/ {{ (totalTramo1_30PEN() + totalTramo31_60PEN() + totalTramo61_90PEN() + totalTramoMas90PEN()) | number:'1.2-2' }}</div>
+        @if ((totalTramo1_30USD() + totalTramo31_60USD() + totalTramo61_90USD() + totalTramoMas90USD()) > 0) {
+          <div class="kpi-value2">$ {{ (totalTramo1_30USD() + totalTramo31_60USD() + totalTramo61_90USD() + totalTramoMas90USD()) | number:'1.2-2' }}</div>
+        }
+        <div class="kpi-sub">máx. {{ maxDiasVencido() }} días de atraso</div>
+      </div>
+      <div class="kpi-card kpi-tr90">
+        <div class="kpi-label">Más de 90 días</div>
+        <div class="kpi-value">S/ {{ totalTramoMas90PEN() | number:'1.2-2' }}</div>
+        @if (totalTramoMas90USD() > 0) {
+          <div class="kpi-value2">$ {{ totalTramoMas90USD() | number:'1.2-2' }}</div>
+        }
+        <div class="kpi-sub">{{ pctTramo(totalTramoMas90Comb()) }}% del total pendiente</div>
+      </div>
+    </div>
+
+    <!-- Aging summary -->
+    <div class="cb-aging-card">
+      <div class="cb-aging-title">Antigüedad de la deuda</div>
+      <div class="cb-aging-bar">
+        <div class="ab-seg tr-al-dia" [style.width.%]="pctTramo(totalCorrienteComb())" [title]="'Corriente'"></div>
+        <div class="ab-seg tr-30" [style.width.%]="pctTramo(totalTramo1_30Comb())" [title]="'1-30d'"></div>
+        <div class="ab-seg tr-60" [style.width.%]="pctTramo(totalTramo31_60Comb())" [title]="'31-60d'"></div>
+        <div class="ab-seg tr-90" [style.width.%]="pctTramo(totalTramo61_90Comb())" [title]="'61-90d'"></div>
+        <div class="ab-seg tr-mas90" [style.width.%]="pctTramo(totalTramoMas90Comb())" [title]="'+90d'"></div>
+      </div>
+      <div class="cb-aging-legend">
+        <span><i class="dot tr-al-dia"></i>Corriente <b>S/ {{ totalCorrientePEN() | number:'1.0-0' }}@if (totalCorrienteUSD() > 0) { · $ {{ totalCorrienteUSD() | number:'1.0-0' }} }</b></span>
+        <span><i class="dot tr-30"></i>1-30d <b>S/ {{ totalTramo1_30PEN() | number:'1.0-0' }}@if (totalTramo1_30USD() > 0) { · $ {{ totalTramo1_30USD() | number:'1.0-0' }} }</b></span>
+        <span><i class="dot tr-60"></i>31-60d <b>S/ {{ totalTramo31_60PEN() | number:'1.0-0' }}@if (totalTramo31_60USD() > 0) { · $ {{ totalTramo31_60USD() | number:'1.0-0' }} }</b></span>
+        <span><i class="dot tr-90"></i>61-90d <b>S/ {{ totalTramo61_90PEN() | number:'1.0-0' }}@if (totalTramo61_90USD() > 0) { · $ {{ totalTramo61_90USD() | number:'1.0-0' }} }</b></span>
+        <span><i class="dot tr-mas90"></i>+90d <b>S/ {{ totalTramoMas90PEN() | number:'1.0-0' }}@if (totalTramoMas90USD() > 0) { · $ {{ totalTramoMas90USD() | number:'1.0-0' }} }</b></span>
+      </div>
+    </div>
+
+    <!-- Tabla principal -->
+    <div class="cb-table-wrap">
+      <table class="cb-table">
+        <thead>
+          <tr>
+            <th style="width:32px"></th>
+            <th>Cliente</th>
+            <th class="num">Facturas</th>
+            <th class="num">Corriente</th>
+            <th class="num">1-30d</th>
+            <th class="num">31-60d</th>
+            <th class="num">61-90d</th>
+            <th class="num">+90d</th>
+            <th class="num">Total pendiente</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of clientesFiltrados(); track c.ClienteId) {
+            <tr class="cb-row" [class.expanded]="expandido() === c.ClienteId" (click)="expandir(c)">
+              <td class="cb-chevron"><span [class.open]="expandido() === c.ClienteId">▸</span></td>
+              <td><div class="cb-cliente-name">{{ c.Cliente }}</div></td>
+              <td class="num">{{ c.CantidadFacturas }}</td>
+
+              <td class="num mono cb-money-cell">
+                @if (c.Tramo0_30_PEN > 0 || c.Tramo0_30_USD > 0) {
+                  @if (c.Tramo0_30_PEN > 0) { <div>S/ {{ c.Tramo0_30_PEN | number:'1.2-2' }}</div> }
+                  @if (c.Tramo0_30_USD > 0) { <div>$ {{ c.Tramo0_30_USD | number:'1.2-2' }}</div> }
+                } @else { <span class="muted">—</span> }
+              </td>
+              <td class="num mono cb-money-cell tr-txt-30">
+                @if (c.Tramo1_30_PEN > 0 || c.Tramo1_30_USD > 0) {
+                  @if (c.Tramo1_30_PEN > 0) { <div>S/ {{ c.Tramo1_30_PEN | number:'1.2-2' }}</div> }
+                  @if (c.Tramo1_30_USD > 0) { <div>$ {{ c.Tramo1_30_USD | number:'1.2-2' }}</div> }
+                } @else { <span class="muted">—</span> }
+              </td>
+              <td class="num mono cb-money-cell tr-txt-60">
+                @if (c.Tramo31_60_PEN > 0 || c.Tramo31_60_USD > 0) {
+                  @if (c.Tramo31_60_PEN > 0) { <div>S/ {{ c.Tramo31_60_PEN | number:'1.2-2' }}</div> }
+                  @if (c.Tramo31_60_USD > 0) { <div>$ {{ c.Tramo31_60_USD | number:'1.2-2' }}</div> }
+                } @else { <span class="muted">—</span> }
+              </td>
+              <td class="num mono cb-money-cell tr-txt-90">
+                @if (c.Tramo61_90_PEN > 0 || c.Tramo61_90_USD > 0) {
+                  @if (c.Tramo61_90_PEN > 0) { <div>S/ {{ c.Tramo61_90_PEN | number:'1.2-2' }}</div> }
+                  @if (c.Tramo61_90_USD > 0) { <div>$ {{ c.Tramo61_90_USD | number:'1.2-2' }}</div> }
+                } @else { <span class="muted">—</span> }
+              </td>
+              <td class="num mono cb-money-cell tr-txt-mas90">
+                @if (c.TramoMas90_PEN > 0 || c.TramoMas90_USD > 0) {
+                  @if (c.TramoMas90_PEN > 0) { <div>S/ {{ c.TramoMas90_PEN | number:'1.2-2' }}</div> }
+                  @if (c.TramoMas90_USD > 0) { <div>$ {{ c.TramoMas90_USD | number:'1.2-2' }}</div> }
+                } @else { <span class="muted">—</span> }
+              </td>
+              <td class="num mono cb-money-cell">
+                <div>S/ {{ c.MontoPendientePEN | number:'1.2-2' }}</div>
+                @if (c.MontoPendienteUSD > 0) { <div>$ {{ c.MontoPendienteUSD | number:'1.2-2' }}</div> }
+              </td>
+            </tr>
+
+            @if (expandido() === c.ClienteId) {
+              <tr class="cb-detail-row">
+                <td [attr.colspan]="9">
+                  <div class="cb-detail-box">
+                    @if (detalleCargando()) {
+                      <div class="cb-detail-loading">Cargando…</div>
+                    } @else {
+                      <table class="cb-detail-table">
+                        <thead>
+                          <tr><th>Factura</th><th>Proyecto</th><th>Emisión</th><th>Vence</th><th class="num">Total</th><th class="num">Saldo</th><th>Estado</th></tr>
+                        </thead>
+                        <tbody>
+                          @for (f of detalleOrdenado(); track f.Id) {
+                            <tr>
+                              <td class="mono cb-dt-codigo">{{ formatoFactura(f.Codigo) }}</td>
+                              <td class="cb-dt-proyecto">
+                                <a class="sub-link" [routerLink]="['/proyectos']">{{ f.ProyectoCodigo }}</a>
+                              </td>
+                              <td class="cb-dt-fecha">{{ f.FechaEmision | date:'dd/MM/yy' }}</td>
+                              <td class="cb-dt-fecha" [class]="tramoClase(f.DiasVencido)">
+                                {{ f.FechaVencimiento | date:'dd/MM/yy' }}
+                                @if (f.DiasVencido > 0) {
+                                  <span class="cb-dias-badge">⚠ {{ f.DiasVencido }}d</span>
+                                }
+                              </td>
+                              <td class="num mono cb-dt-total">{{ moneda(f.Moneda) }} {{ f.Total | number:'1.2-2' }}</td>
+                              <td class="num mono cb-dt-saldo">{{ moneda(f.Moneda) }} {{ f.Saldo | number:'1.2-2' }}</td>
+                              <td><span class="badge sm" [class]="f.Estado | badge"><span class="dot"></span>{{ f.Estado }}</span></td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+        @if (clientesFiltrados().length) {
+          <tfoot>
+            <tr class="cb-total-row">
+              <td></td>
+              <td class="strong">TOTAL</td>
+              <td class="num strong">{{ totalFacturas() }}</td>
+              <td class="num mono cb-money-cell">
+                <div>S/ {{ totalCorrientePEN() | number:'1.2-2' }}</div>
+                @if (totalCorrienteUSD() > 0) { <div>$ {{ totalCorrienteUSD() | number:'1.2-2' }}</div> }
+              </td>
+              <td class="num mono cb-money-cell">
+                <div>S/ {{ totalTramo1_30PEN() | number:'1.2-2' }}</div>
+                @if (totalTramo1_30USD() > 0) { <div>$ {{ totalTramo1_30USD() | number:'1.2-2' }}</div> }
+              </td>
+              <td class="num mono cb-money-cell">
+                <div>S/ {{ totalTramo31_60PEN() | number:'1.2-2' }}</div>
+                @if (totalTramo31_60USD() > 0) { <div>$ {{ totalTramo31_60USD() | number:'1.2-2' }}</div> }
+              </td>
+              <td class="num mono cb-money-cell">
+                <div>S/ {{ totalTramo61_90PEN() | number:'1.2-2' }}</div>
+                @if (totalTramo61_90USD() > 0) { <div>$ {{ totalTramo61_90USD() | number:'1.2-2' }}</div> }
+              </td>
+              <td class="num mono cb-money-cell">
+                <div>S/ {{ totalTramoMas90PEN() | number:'1.2-2' }}</div>
+                @if (totalTramoMas90USD() > 0) { <div>$ {{ totalTramoMas90USD() | number:'1.2-2' }}</div> }
+              </td>
+              <td class="num mono cb-money-cell">
+                <div>S/ {{ totalPendientePEN() | number:'1.2-2' }}</div>
+                @if (totalPendienteUSD() > 0) { <div>$ {{ totalPendienteUSD() | number:'1.2-2' }}</div> }
+              </td>
+            </tr>
+          </tfoot>
+        }
+      </table>
+
+      @if (!clientesFiltrados().length) {
+        <div class="cb-empty">
+          {{ soloPendientes() ? 'No hay facturas pendientes de cobro 🎉' : 'No hay facturas para mostrar' }}
+        </div>
+      }
+    </div>
+  }
+</div>

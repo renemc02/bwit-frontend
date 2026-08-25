@@ -327,10 +327,13 @@ export class ProyectoDetailComponent implements OnInit {
   modalCert  = signal(false);
   certError  = signal('');
   certFiles  = signal<File[]>([]);
-  certForm: any = { periodo: '', tipo: 'Mensual', descripcion: '', montoSinIgv: 0, descuentoTipo: 'ninguno', descuentoValor: 0, fechaInicio: '', fechaFin: '' };
+  certForm: any = { periodo: '', tipo: 'Mensual', descripcion: '', montoSinIgv: 0, descuentoTipo: 'ninguno', descuentoValor: 0, fechaInicio: '', fechaFin: '', certificarTrabajadores: false, trabajadoresIds: [] as number[] };
   certTotal  = signal(0);
   certDescuento = signal(0);
   certMontoNeto = signal(0);
+
+  // Equipo asignado al proyecto, para el selector opcional de trabajadores a certificar
+  equipoProyecto = computed(() => this.p()?.Asignaciones ?? []);
 
   // ── Modal editar certificación ──
   modalCertEdit = signal(false);
@@ -362,7 +365,7 @@ export class ProyectoDetailComponent implements OnInit {
   };
 
   abrirCert() {
-    this.certForm = { periodo: '', tipo: 'Mensual', descripcion: '', montoSinIgv: 0, descuentoTipo: 'ninguno', descuentoValor: 0, fechaInicio: '', fechaFin: '' };
+    this.certForm = { periodo: '', tipo: 'Mensual', descripcion: '', montoSinIgv: 0, descuentoTipo: 'ninguno', descuentoValor: 0, fechaInicio: '', fechaFin: '', certificarTrabajadores: false, trabajadoresIds: [] };
     this.certTotal.set(0);
     this.certDescuento.set(0);
     this.certMontoNeto.set(0);
@@ -371,6 +374,21 @@ export class ProyectoDetailComponent implements OnInit {
     this.modalCert.set(true);
   }
   cerrarCert() { this.modalCert.set(false); }
+
+  toggleTrabajadorCert(personalId: number) {
+    const ids: number[] = this.certForm.trabajadoresIds || [];
+    this.certForm.trabajadoresIds = ids.includes(personalId)
+      ? ids.filter(id => id !== personalId)
+      : [...ids, personalId];
+  }
+
+  iniciales(nombre: string): string {
+    if (!nombre) return '';
+    const partes = nombre.trim().split(/\s+/);
+    const a = partes[0]?.[0] ?? '';
+    const b = partes.length > 1 ? partes[partes.length - 1][0] : '';
+    return (a + b).toUpperCase();
+  }
 
   onCertFilesSelected(event: Event) {
     const input = event.target as HTMLInputElement;
@@ -395,6 +413,9 @@ export class ProyectoDetailComponent implements OnInit {
   guardarCert(estado: string) {
     if (!this.certForm.periodo.trim()) { this.certError.set('Ingresa el periodo.'); return; }
     if (!this.certForm.montoSinIgv || this.certForm.montoSinIgv <= 0) { this.certError.set('Ingresa el monto a certificar.'); return; }
+    if (this.certForm.certificarTrabajadores && !(this.certForm.trabajadoresIds || []).length) {
+      this.certError.set('Selecciona al menos un trabajador para certificar.'); return;
+    }
     const body: any = {
       ProyectoId: this.p()?.Id,
       Periodo: this.certForm.periodo,
@@ -408,6 +429,9 @@ export class ProyectoDetailComponent implements OnInit {
     if (this.certForm.descuentoTipo !== 'ninguno' && Number(this.certForm.descuentoValor) > 0) {
       body.DescuentoTipo = this.certForm.descuentoTipo;
       body.DescuentoValor = Number(this.certForm.descuentoValor);
+    }
+    if (this.certForm.certificarTrabajadores && this.certForm.trabajadoresIds?.length) {
+      body.PersonalIds = this.certForm.trabajadoresIds;
     }
     this.certSvc.crear(body).subscribe({
       next: (r: any) => {
@@ -440,11 +464,15 @@ export class ProyectoDetailComponent implements OnInit {
   // ── Editar certificación ──
   editarCert(c: any) {
     this.certEditando.set(c);
+    const idsExistentes: number[] = (c.TrabajadoresIds || '')
+      .split(',').map((s: string) => Number(s.trim())).filter((n: number) => !!n);
     this.certForm = {
       periodo: c.Periodo, tipo: c.Tipo ?? 'Mensual', descripcion: c.Descripcion ?? '',
       montoSinIgv: c.Subtotal ?? c.Monto, descuentoTipo: c.DescuentoTipo ?? 'ninguno',
       descuentoValor: c.DescuentoValor ?? 0, fechaInicio: c.FechaInicio ? new Date(c.FechaInicio).toISOString().split('T')[0] : '',
       fechaFin: c.FechaFin ? new Date(c.FechaFin).toISOString().split('T')[0] : '',
+      certificarTrabajadores: idsExistentes.length > 0,
+      trabajadoresIds: idsExistentes,
     };
     this.recalcCert();
     this.certError.set('');
@@ -457,6 +485,9 @@ export class ProyectoDetailComponent implements OnInit {
     if (!c) return;
     if (!this.certForm.periodo.trim()) { this.certError.set('Ingresa el periodo.'); return; }
     if (!this.certForm.montoSinIgv || this.certForm.montoSinIgv <= 0) { this.certError.set('Ingresa el monto.'); return; }
+    if (this.certForm.certificarTrabajadores && !(this.certForm.trabajadoresIds || []).length) {
+      this.certError.set('Selecciona al menos un trabajador para certificar.'); return;
+    }
     const body: any = {
       Periodo: this.certForm.periodo,
       Descripcion: this.certForm.descripcion,
@@ -467,6 +498,11 @@ export class ProyectoDetailComponent implements OnInit {
     if (this.certForm.descuentoTipo !== 'ninguno' && Number(this.certForm.descuentoValor) > 0) {
       body.DescuentoTipo = this.certForm.descuentoTipo;
       body.DescuentoValor = Number(this.certForm.descuentoValor);
+    }
+    if (this.certForm.certificarTrabajadores && this.certForm.trabajadoresIds?.length) {
+      body.PersonalIds = this.certForm.trabajadoresIds;
+    } else {
+      body.LimpiarTrabajadores = true; // se desmarcó el check o se quitó la selección: limpiar lo existente
     }
     this.certSvc.editar(c.Id, body).subscribe({
       next: () => { this.cerrarCertEdit(); this.recargar(); },

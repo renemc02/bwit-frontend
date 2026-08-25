@@ -73,6 +73,7 @@ export class SidebarComponent {
     { label: 'Compras terceros', route: '/pagos/terceros', icon: 'shopping-cart',   modulo: 'pagos' },
     { label: 'Reportes',       route: '/reportes',        icon: 'bar-chart',        modulo: 'reportes' },
     { label: 'Fact. x Cliente', route: '/facturacion-cliente', icon: 'pie-chart',   modulo: 'reportes' },
+    { label: 'Cobranza x Cliente', route: '/cobranza-cliente', icon: 'alert-triangle', modulo: 'reportes' },
     { label: 'Configuración',  route: '/configuracion',   icon: 'settings',         section: 'Sistema', modulo: 'configuracion' },
   ];
 

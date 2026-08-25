@@ -30,6 +30,7 @@ export const routes: Routes = [
       { path: 'pagos',          redirectTo: 'pagos/terceros' },
       { path: 'reportes',       canActivate: [permGuard('reportes')],       loadComponent: () => import('./features/finanzas/reportes/reportes.component').then(m => m.ReportesComponent),                  title: 'Reportes — BWIT' },
       { path: 'facturacion-cliente', canActivate: [permGuard('reportes')],  loadComponent: () => import('./features/finanzas/facturacion-cliente/facturacion-cliente.component').then(m => m.FacturacionClienteComponent), title: 'Facturación x Cliente — BWIT' },
+      { path: 'cobranza-cliente', canActivate: [permGuard('reportes')],  loadComponent: () => import('./features/finanzas/cobranza-cliente/cobranza-cliente.component').then(m => m.CobranzaClienteComponent), title: 'Cobranza x Cliente — BWIT' },
       { path: 'clientes',       canActivate: [permGuard('clientes')],       loadComponent: () => import('./features/clientes/pages/clientes.component').then(m => m.ClientesComponent),                 title: 'Clientes — BWIT' },
       { path: 'equipo',         canActivate: [permGuard('equipo')],         loadComponent: () => import('./features/equipo/pages/equipo.component').then(m => m.EquipoComponent),                       title: 'Equipo — BWIT' },
       { path: 'configuracion',  canActivate: [permGuard('configuracion')],  loadComponent: () => import('./features/configuracion/pages/configuracion.component').then(m => m.ConfiguracionComponent),   title: 'Configuración — BWIT' },
