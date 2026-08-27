@@ -335,6 +335,40 @@ export class ProyectoDetailComponent implements OnInit {
   // Equipo asignado al proyecto, para el selector opcional de trabajadores a certificar
   equipoProyecto = computed(() => this.p()?.Asignaciones ?? []);
 
+  // ── Cerrar proyecto manualmente ──
+  modalCerrarProyecto = signal(false);
+  cerrarProyectoMotivo = '';
+  cerrarProyectoError = signal('');
+  cerrandoProyecto = signal(false);
+
+  abrirCerrarProyecto() {
+    this.cerrarProyectoMotivo = '';
+    this.cerrarProyectoError.set('');
+    this.modalCerrarProyecto.set(true);
+  }
+  cerrarModalCerrarProyecto() { this.modalCerrarProyecto.set(false); }
+
+  confirmarCerrarProyecto() {
+    const proyecto = this.p();
+    if (!proyecto) return;
+    this.cerrandoProyecto.set(true);
+    this.cerrarProyectoError.set('');
+    this.api.patch<any>(`/api/proyectos/${proyecto.Id}/estado`, {
+      Estado: 'Cerrado',
+      Motivo: this.cerrarProyectoMotivo || null
+    }).subscribe({
+      next: () => {
+        this.cerrandoProyecto.set(false);
+        this.modalCerrarProyecto.set(false);
+        this.recargar();
+      },
+      error: () => {
+        this.cerrandoProyecto.set(false);
+        this.cerrarProyectoError.set('No se pudo cerrar el proyecto. Intenta nuevamente.');
+      }
+    });
+  }
+
   // ── Modal editar certificación ──
   modalCertEdit = signal(false);
   certEditando  = signal<any>(null);

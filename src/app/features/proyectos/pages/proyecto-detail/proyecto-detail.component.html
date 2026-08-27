@@ -16,6 +16,9 @@
       <span class="badge" [class]="p().Estado | badge"><span class="dot"></span>{{ p().Estado }}</span>
       <div style="margin-left:auto;display:flex;gap:8px">
         <button class="btn secondary">✎ Editar</button>
+        @if (p().Estado !== 'Cerrado') {
+          <button class="btn secondary" (click)="abrirCerrarProyecto()">🔒 Cerrar proyecto</button>
+        }
         <button class="btn primary" (click)="abrirCert()">+ Nueva certificación</button>
       </div>
     </div>
@@ -997,6 +1000,39 @@
       <div class="modal-footer">
         <button class="btn secondary" (click)="cerrarAprobar()">Cancelar</button>
         <button class="btn primary" (click)="confirmarAprobar()">✓ Aprobar y registrar OC</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ═══ Modal Cerrar proyecto ═══ -->
+@if (modalCerrarProyecto()) {
+  <div class="modal-backdrop" (click)="cerrarModalCerrarProyecto()">
+    <div class="modal-box" (click)="$event.stopPropagation()" style="max-width:480px">
+      <div class="modal-header">
+        <h2>Cerrar proyecto</h2>
+        <button class="icon-btn" (click)="cerrarModalCerrarProyecto()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="muted" style="font-size:13px;line-height:1.5">
+          Vas a cerrar manualmente <strong style="color:var(--text)">{{ p()?.Nombre }}</strong>.
+          El proyecto pasará a estado <strong>Cerrado</strong> y quedará fuera de los listados de proyectos activos.
+          Esta acción se puede revertir después editando el estado.
+        </p>
+        <div class="form-row" style="margin-top:12px">
+          <label>Motivo del cierre <span class="muted" style="font-weight:400;font-size:11px">(opcional)</span></label>
+          <textarea class="input" rows="3" [(ngModel)]="cerrarProyectoMotivo" name="cerrarMotivo"
+                    placeholder="Ej. Proyecto entregado y facturado en su totalidad"></textarea>
+        </div>
+        @if (cerrarProyectoError()) { <div class="error-msg" style="margin-top:12px">{{ cerrarProyectoError() }}</div> }
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" (click)="cerrarModalCerrarProyecto()">Cancelar</button>
+        <button class="btn primary" (click)="confirmarCerrarProyecto()" [disabled]="cerrandoProyecto()">
+          🔒 {{ cerrandoProyecto() ? 'Cerrando…' : 'Cerrar proyecto' }}
+        </button>
       </div>
     </div>
   </div>
