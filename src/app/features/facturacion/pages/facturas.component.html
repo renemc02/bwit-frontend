@@ -14,18 +14,42 @@
     @else if (!items().length) { <ui-empty title="Sin facturas" /> }
     @else {
       <table class="table">
-        <thead><tr><th>N° Factura</th><th>Cliente</th><th>Proyecto</th><th>Emisión</th><th>Vencimiento</th><th style="text-align:right">Total</th><th style="text-align:right">Saldo</th><th>Estado</th></tr></thead>
+        <thead><tr><th>N° Factura</th><th>Cliente</th><th>Proyecto</th><th>Emisión</th><th>Vencimiento</th><th style="text-align:right">Total</th><th style="text-align:right">Saldo</th><th>Estado</th><th></th></tr></thead>
         <tbody>
           @for (item of items(); track item.Id) {
             <tr>
-              <td class="id">{{ item.Codigo }}</td>
+              <td class="id">
+                {{ item.Codigo }}
+                @if (item.TipoComprobante === 'Nota de credito') {
+                  <span style="display:inline-block;font-size:9px;font-weight:700;background:var(--danger-soft);color:var(--danger);border-radius:4px;padding:1px 5px;margin-left:5px">NC</span>
+                }
+              </td>
               <td class="strong">{{ item.Cliente }}</td>
               <td class="id">{{ item.ProyectoCodigo }}</td>
               <td class="muted">{{ item.FechaEmision   | date:'dd/MM/yyyy' }}</td>
               <td [style.color]="item.DiasVencido > 0 ? 'var(--danger)' : 'var(--text-muted)'">{{ item.FechaVencimiento | date:'dd/MM/yyyy' }}</td>
-              <td class="num mono">{{ item.Moneda | moneda }} {{ item.Total | number:'1.0-0' }}</td>
+              <td class="num mono" [style.color]="item.TipoComprobante === 'Nota de credito' ? 'var(--danger)' : 'inherit'">
+                {{ item.TipoComprobante === 'Nota de credito' ? '−' : '' }}{{ item.Moneda | moneda }} {{ item.Total | number:'1.0-0' }}
+              </td>
               <td class="num mono" [style.color]="item.Saldo > 0 ? 'var(--warning)' : 'inherit'">{{ item.Moneda | moneda }} {{ item.Saldo | number:'1.0-0' }}</td>
-              <td><span class="badge" [class]="item.Estado | badge"><span class="dot"></span>{{ item.Estado }}</span></td>
+              <td>
+                @if (item.TipoComprobante === 'Nota de credito') {
+                  <span class="badge" [class]="'info'"><span class="dot"></span>{{ item.TipoNotaCredito === 'Anulacion' ? 'Anulación' : 'Descuento' }}</span>
+                } @else {
+                  <span class="badge" [class]="item.Estado | badge"><span class="dot"></span>{{ item.Estado }}</span>
+                  @if (item.NotaCreditoCodigos) {
+                    <div class="muted" style="font-size:10.5px;margin-top:3px">↳ {{ item.NotaCreditoCodigos }}</div>
+                  }
+                }
+              </td>
+              <td>
+                @if (item.Estado !== 'Anulada' && item.TipoComprobante !== 'Nota de credito') {
+                  <button class="btn sm secondary" (click)="abrirNC(item)">NC</button>
+                }
+                @if (item.TipoComprobante === 'Nota de credito' && item.FacturaReferenciaCodigo) {
+                  <span class="muted" style="font-size:11px">↩ {{ item.FacturaReferenciaCodigo }}</span>
+                }
+              </td>
             </tr>
           }
         </tbody>
@@ -33,3 +57,14 @@
     }
   </div>
 </div>
+
+@if (facturaParaNC()) {
+  <bwit-nota-credito-modal
+    [facturaId]="facturaParaNC().Id"
+    [facturaCodigo]="facturaParaNC().Codigo"
+    [facturaSubtotal]="facturaParaNC().Subtotal"
+    [facturaSaldo]="facturaParaNC().Saldo"
+    [facturaMoneda]="facturaParaNC().Moneda"
+    (cerrar)="cerrarNC()"
+    (creada)="ncCreada()" />
+}

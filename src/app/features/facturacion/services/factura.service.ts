@@ -11,4 +11,7 @@ export class FacturaService {
   registrarPago(body: any)          { return this.api.post<any>(API.facturas.pagos, body); }
   aprobar(id: number, body: any)    { return this.api.post<any>(API.facturas.aprobar(id), body); }
   historial(id: number)             { return this.api.get<any[]>(API.facturas.historial(id)); }
+  listarNotasCredito(id: number)    { return this.api.get<any[]>(API.facturas.notasCredito(id)); }
+  crearNotaCredito(id: number, body: any) { return this.api.post<any>(API.facturas.notasCredito(id), body); }
+  itemsCreditables(id: number)      { return this.api.get<any[]>(API.facturas.itemsCreditables(id)); }
 }

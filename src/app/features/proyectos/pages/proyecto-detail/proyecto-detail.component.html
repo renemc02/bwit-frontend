@@ -686,15 +686,37 @@
                   <tbody>
                     @for (f of facturas(); track f.Id) {
                       <tr>
-                        <td class="strong mono" style="font-size:12.5px">{{ f.Codigo }}</td>
-                        <td class="muted mono" style="font-size:12px">{{ f.OcAsociada || '—' }}</td>
+                        <td class="strong mono" style="font-size:12.5px">
+                          {{ f.Codigo }}
+                          @if (f.TipoComprobante === 'Nota de credito') {
+                            <span style="display:inline-block;font-size:9px;font-weight:700;background:var(--danger-soft);color:var(--danger);border-radius:4px;padding:1px 5px;margin-left:5px">NC</span>
+                          }
+                        </td>
+                        <td class="muted mono" style="font-size:12px">
+                          @if (f.TipoComprobante === 'Nota de credito' && f.FacturaReferenciaCodigo) {
+                            ↩ {{ f.FacturaReferenciaCodigo }}
+                          } @else {
+                            {{ f.OcAsociada || '—' }}
+                          }
+                        </td>
                         <td class="muted" style="font-size:12.5px">{{ f.FechaEmision | date:'dd-MMM' }}</td>
                         <td class="muted" style="font-size:12.5px">{{ f.FechaVencimiento | date:'dd-MMM' }}</td>
                         <td class="mono" style="text-align:right;font-size:12.5px">{{ cur() }} {{ f.Subtotal | number:'1.2-2' }}</td>
                         <td class="mono" style="text-align:right;font-size:12.5px">{{ cur() }} {{ f.Igv | number:'1.2-2' }}</td>
-                        <td class="mono strong" style="text-align:right">{{ cur() }} {{ f.Total | number:'1.2-2' }}</td>
+                        <td class="mono strong" [style.color]="f.TipoComprobante === 'Nota de credito' ? 'var(--danger)' : 'inherit'" style="text-align:right">
+                          {{ f.TipoComprobante === 'Nota de credito' ? '−' : '' }}{{ cur() }} {{ f.Total | number:'1.2-2' }}
+                        </td>
                         <td class="mono" style="text-align:right">{{ cur() }} {{ f.Saldo | number:'1.2-2' }}</td>
-                        <td><span class="badge" [class]="f.Estado | badge"><span class="dot"></span>{{ f.Estado }}</span></td>
+                        <td>
+                          @if (f.TipoComprobante === 'Nota de credito') {
+                            <span class="badge info"><span class="dot"></span>{{ f.TipoNotaCredito === 'Anulacion' ? 'Anulación' : 'Descuento' }}</span>
+                          } @else {
+                            <span class="badge" [class]="f.Estado | badge"><span class="dot"></span>{{ f.Estado }}</span>
+                            @if (f.NotaCreditoCodigos) {
+                              <div class="muted" style="font-size:10.5px;margin-top:3px">↳ {{ f.NotaCreditoCodigos }}</div>
+                            }
+                          }
+                        </td>
                         <td>
                           <div style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap">
                             @if (f.Estado === 'Borrador') {
@@ -709,6 +731,9 @@
                             }
                             @if (f.Estado === 'Pendiente' || f.Estado === 'Parcial' || f.Estado === 'Vencida') {
                               <button class="btn sm secondary" (click)="cobrarFactura(f)">$ Cobrar</button>
+                            }
+                            @if (f.Estado !== 'Anulada' && f.TipoComprobante !== 'Nota de credito') {
+                              <button class="btn sm secondary" (click)="abrirNC(f)">NC</button>
                             }
                             <button class="icon-btn" title="Trazabilidad" (click)="verHistorialFactura(f)">🕒</button>
                             <button class="icon-btn" title="Cobros recibidos" (click)="verCobros(f)">💰</button>
@@ -2203,4 +2228,15 @@
       </div>
     </div>
   </div>
+}
+
+@if (facturaParaNC()) {
+  <bwit-nota-credito-modal
+    [facturaId]="facturaParaNC().Id"
+    [facturaCodigo]="facturaParaNC().Codigo"
+    [facturaSubtotal]="facturaParaNC().Subtotal"
+    [facturaSaldo]="facturaParaNC().Saldo"
+    [facturaMoneda]="facturaParaNC().Moneda"
+    (cerrar)="cerrarNC()"
+    (creada)="ncCreada()" />
 }

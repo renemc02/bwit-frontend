@@ -1,0 +1,147 @@
+<div class="modal-backdrop" (click)="cerrar.emit()">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Generar Nota de Crédito · {{ facturaCodigo() }}</h2>
+      <button class="icon-btn" (click)="cerrar.emit()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="ncm-saldo-box">
+        <span class="muted">Saldo pendiente de la factura</span>
+        <span class="ncm-saldo-valor">{{ cur() }} {{ facturaSaldo() | number:'1.2-2' }}</span>
+      </div>
+
+      <div class="ncm-section-title">
+        <span class="cst-bar"></span>
+        <span>COMPROBANTE</span>
+      </div>
+      <div class="ncm-serie-row">
+        <label>Serie / Correlativo</label>
+        <label class="ncm-portal-check">
+          <input type="checkbox" [(ngModel)]="emitidaPortalSunat" />
+          <span>digitar serie y número</span>
+        </label>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input class="input" style="width:90px" [(ngModel)]="serieManual" [disabled]="!emitidaPortalSunat" placeholder="NC01" maxlength="4" />
+        <input class="input" style="flex:1" type="number" [(ngModel)]="numeroManual" [disabled]="!emitidaPortalSunat" placeholder="N° correlativo" />
+      </div>
+
+      <div class="ncm-section-title" style="margin-top:20px">
+        <span class="cst-bar"></span>
+        <span>TIPO DE NOTA</span>
+      </div>
+      <div class="ncm-tipo-row">
+        <label class="ncm-tipo-card" [class.active]="tipoNota() === 'Anulacion'">
+          <input type="radio" name="tipoNota" [checked]="tipoNota() === 'Anulacion'" (change)="cambiarTipo('Anulacion')" />
+          <div>
+            <div class="ncm-tipo-title">Anulación total</div>
+            <div class="ncm-tipo-desc">Anula la factura completa (todos sus items). Su estado pasa a "Anulada".</div>
+          </div>
+        </label>
+        <label class="ncm-tipo-card" [class.active]="tipoNota() === 'Descuento'">
+          <input type="radio" name="tipoNota" [checked]="tipoNota() === 'Descuento'" (change)="cambiarTipo('Descuento')" />
+          <div>
+            <div class="ncm-tipo-title">Descuento / ajuste parcial</div>
+            <div class="ncm-tipo-desc">Elige qué items y cantidades acreditar.</div>
+          </div>
+        </label>
+      </div>
+
+      <div class="ncm-section-title" style="margin-top:20px">
+        <span class="cst-bar"></span>
+        <span>MOTIVO SUNAT</span>
+      </div>
+      <div class="form-row">
+        <label>Motivo <span class="req">*</span></label>
+        <select class="select" [ngModel]="motivoCodigo()" (ngModelChange)="motivoCodigo.set($event)">
+          @for (m of motivos(); track m.codigo) {
+            <option [value]="m.codigo">{{ m.label }}</option>
+          }
+        </select>
+      </div>
+      <div class="form-row" style="margin-top:10px">
+        <label>Descripción adicional <span class="muted" style="font-weight:400;font-size:11px">(opcional)</span></label>
+        <textarea class="input" rows="2" [(ngModel)]="motivoDescripcion" placeholder="Detalle del motivo, referencia interna, etc."></textarea>
+      </div>
+
+      @if (tipoNota() === 'Descuento') {
+        <div class="ncm-section-title" style="margin-top:20px">
+          <span class="cst-bar"></span>
+          <span>ITEMS A ACREDITAR</span>
+        </div>
+        @if (cargandoItems()) {
+          <div class="muted" style="font-size:12.5px;padding:10px 0">Cargando items…</div>
+        } @else if (!items().length) {
+          <div class="muted" style="font-size:12.5px;padding:10px 0">Esta factura no tiene items disponibles para acreditar.</div>
+        } @else {
+          <div class="ncm-items-list">
+            @for (it of items(); track it.Id) {
+              <div class="ncm-item-row" [class.disabled]="it.CantidadDisponible <= 0">
+                <input type="checkbox" [checked]="it.seleccionado" [disabled]="it.CantidadDisponible <= 0"
+                       (change)="toggleItem(it)" />
+                <div class="ncm-item-info">
+                  <div class="ncm-item-desc">{{ it.Descripcion }}</div>
+                  <div class="ncm-item-sub">
+                    {{ cur() }} {{ it.PrecioUnitario | number:'1.2-2' }} c/u ·
+                    disponible: {{ it.CantidadDisponible }} {{ it.UnidadMedida }}
+                    @if (it.CantidadDisponible <= 0) { <span class="ncm-item-agotado">· ya acreditado en su totalidad</span> }
+                  </div>
+                </div>
+                @if (it.seleccionado) {
+                  <div class="ncm-item-qty">
+                    <input type="number" [ngModel]="it.cantidadAcreditar" min="0" [max]="it.CantidadDisponible" step="0.01"
+                           (ngModelChange)="ajustarCantidad(it, $event)" />
+                    <span class="ncm-item-subtotal">{{ cur() }} {{ (it.cantidadAcreditar * it.PrecioUnitario) | number:'1.2-2' }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      }
+
+      <div class="ncm-resumen">
+        <div class="ncm-resumen-title">RESUMEN</div>
+        <div class="ncm-resumen-row">
+          <span class="muted">Tipo</span>
+          <span>{{ tipoNota() === 'Anulacion' ? 'Anulación total' : 'Descuento parcial' }}</span>
+        </div>
+        @if (tipoNota() === 'Descuento') {
+          <div class="ncm-resumen-row">
+            <span class="muted">Items seleccionados</span>
+            <span>{{ itemsSeleccionados().length }}</span>
+          </div>
+        }
+        <div class="ncm-resumen-row">
+          <span class="muted">Subtotal</span>
+          <span class="mono">{{ cur() }} {{ montoBaseNC() | number:'1.2-2' }}</span>
+        </div>
+        <div class="ncm-resumen-row">
+          <span class="muted">IGV (18%)</span>
+          <span class="mono">{{ cur() }} {{ (montoTotalNC() - montoBaseNC()) | number:'1.2-2' }}</span>
+        </div>
+        <div class="ncm-resumen-row total">
+          <span>Monto de la NC (con IGV)</span>
+          <span class="mono">{{ cur() }} {{ montoTotalNC() | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      <label class="ncm-check">
+        <input type="checkbox" [(ngModel)]="enviarSunat" />
+        <span>Enviar a SUNAT al generar (facturación electrónica)</span>
+      </label>
+
+      @if (error()) { <div class="error-msg" style="margin-top:12px">{{ error() }}</div> }
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn secondary" (click)="cerrar.emit()">Cancelar</button>
+      <button class="btn primary" (click)="confirmar()" [disabled]="guardando()">
+        {{ guardando() ? 'Generando…' : '✓ Generar Nota de Crédito' }}
+      </button>
+    </div>
+  </div>
+</div>

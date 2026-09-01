@@ -6,6 +6,7 @@ import { TopbarComponent } from '../../../../core/layout/topbar/topbar.component
 import { UiLoadingComponent } from '../../../../shared/components/ui-loading.component';
 import { BadgePipe } from '../../../../shared/pipes/badge.pipe';
 import { AdjuntosComponent } from '../../../../shared/components/adjuntos.component';
+import { NotaCreditoModalComponent } from '../../../../shared/components/nota-credito-modal/nota-credito-modal.component';
 import { CertificacionService } from '../../../certificaciones/services/certificacion.service';
 import { ApiService } from '../../../../core/http/api.service';
 import { FacturaService } from '../../../facturacion/services/factura.service';
@@ -19,7 +20,7 @@ type Tab = 'resumen' | 'certificaciones' | 'ordenes' | 'facturas' | 'equipo' | '
 @Component({
   selector: 'bwit-proyecto-detail',
   standalone: true,
-  imports: [DecimalPipe, DatePipe, FormsModule, TopbarComponent, UiLoadingComponent, BadgePipe, AdjuntosComponent],
+  imports: [DecimalPipe, DatePipe, FormsModule, TopbarComponent, UiLoadingComponent, BadgePipe, AdjuntosComponent, NotaCreditoModalComponent],
   templateUrl: './proyecto-detail.component.html',
   styleUrl: './proyecto-detail.component.scss'
 })
@@ -78,10 +79,7 @@ export class ProyectoDetailComponent implements OnInit {
   onTabChange(t: Tab) {
     this.tab.set(t);
     if (t === 'facturas' && !this.facturasLoaded()) {
-      this.facSvc.listar({ ProyectoId: this.p()?.Id, PageSize: 100 }).subscribe({
-        next: d => { this.facturas.set(d.data ?? []); this.facturasLoaded.set(true); },
-        error: () => {}
-      });
+      this.cargarFacturas();
     }
     if (t === 'adendas' && !this.adendasLoaded()) {
       this.cargarAdendas();
@@ -819,6 +817,23 @@ export class ProyectoDetailComponent implements OnInit {
         error: () => {}
       });
     });
+  }
+
+  // ── Nota de Crédito ──
+  facturaParaNC = signal<any>(null);
+  cargarFacturas() {
+    this.facSvc.listar({ ProyectoId: this.p()?.Id, PageSize: 100 }).subscribe({
+      next: d => { this.facturas.set(d.data ?? []); this.facturasLoaded.set(true); },
+      error: () => {}
+    });
+  }
+
+  abrirNC(f: any) { this.facturaParaNC.set(f); }
+  cerrarNC() { this.facturaParaNC.set(null); }
+  ncCreada() {
+    this.facturaParaNC.set(null);
+    this.cargarFacturas();   // refresca la lista en el momento, sin esperar a cambiar de pestaña
+    this.recargar();         // refresca cabecera del proyecto (montos, estado, etc.)
   }
 
   cobrarFactura(f: any) {
